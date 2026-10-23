@@ -15,7 +15,8 @@ Run it with `uv run python main.py --phase posthoc`.
      the family.
    - The new **rank-matched null** matches each curve unit to one of its 10 nearest non-family channels by Δ (1000
      sets).
-   - We also report the **single strongest competitor**: the 10 non-family channels with the largest Δ.
+   - We also report the **most-changing competitor**: the 10 non-family channels with the largest Δ. (The second
+     round below found a stronger one, ranked by single-channel effect.)
 2. **The pre-registered H1-ridge "effect" was measured over all 508 z-scored `mixed4a` channels.** That says the
    whole layer moves toward the source, not that the *decoded orientation* does. We now also measure the effect in
    the ridge decoder's (cos θ, sin θ) output space.
@@ -50,8 +51,8 @@ Run it with `uv run python main.py --phase posthoc`.
   - The rank-matched q95 rises above the decile-matched one for H1 (0.121 vs 0.098) and H1-ridge (0.135 vs 0.106).
     It is similar or lower for the other tests: H2 0.100 vs 0.141; H4 0.146 vs 0.169; composited 0.106 vs 0.104;
     H5 0.073 vs 0.075.
-  - Even the strongest 10 non-family channels move the 4a curve code only 12.5% of the way, against 41% for the
-    family. They transfer the decoded orientation in only 1 of 4574 pairs.
+  - Even the 10 most-changing non-family channels move the 4a curve code only 12.5% of the way, against 41% for
+    the family. They transfer the decoded orientation in only 1 of 4574 pairs.
   - "The family is special among channels that change as much" survives.
 - **On the decoded orientation itself, the family's effect is larger than the z-space number suggested.**
   - The ridge readout's predicted orientation vector moves 57% of the way to the source's, yet lands within 10° of
@@ -69,8 +70,10 @@ Run it with `uv run python main.py --phase posthoc`.
 - **The composited test reuses the same 32 photo backgrounds in both splits.** It generalises across jitter, not
   backgrounds.
 - **The pigeonhole bootstrap treats base and source as separate factors** although images play both roles, and it
-  ignores jitter-cell clustering, so the CIs are somewhat narrow. The seed-to-seed spread (IIA 0.171–0.177) and
-  the size of every margin make this immaterial for the verdicts.
+  ignores jitter-cell clustering, so the CIs are somewhat narrow. This cannot change the verdicts:
+  - H1's falsification uses the point estimate, IIA < 0.2. The estimate is 0.177, and the seeds give 0.171–0.172.
+    Its CI upper bound (0.199) is, however, close to 0.2.
+  - Every secondary margin's CI lower bound is at least 0.136, far from 0.
 - **The effect's 5% denominator filter used all pairs,** not only eligible ones as pre-registered. At most 1.7% of
   pairs are ineligible.
 - **Reliability and privacy:**
@@ -97,7 +100,10 @@ module, the run logs, the git history and every number in the README and paper. 
 - **Relevance null.** We suspected that the variance-matched null might under-match the family, as the decile null
   did for patching. It does not (table below).
 
-### Claims that lacked their own test, and the outcome that would overturn each (written before running)
+### Claims that lacked their own test, and the outcome that would overturn each
+The overturning outcomes were set in the audit plan before the phase ran. They were first committed together with
+the results (commit 69368e2), so git does not timestamp them.
+
 | Claim | Check | Overturning outcome |
 |---|---|---|
 | The family is special (beats a "data-driven" set) | Rank all 480 channels by single-channel patching effect on the **selection** split; score the top-10 and the top-10 non-family on the confirmatory pairs | Non-family top-10 effect ≥ family effect |
@@ -129,9 +135,11 @@ the same K give 0.359 / 0.442 / 0.792.
   observational Fisher top-10. It looks only at the window centre, so it was a weak competitor (IIA 0.028).
   - A causal ranking nearly reproduces the published family.
   - The best non-family set moves the curve code only half as far as the family.
-  - Channel 380, which is not one of the 10 published units, edges out unit 379. It is worth inspecting as one of
-    the additional curve features that [Gorton 2024](https://arxiv.org/abs/2406.03662) reports. We have not checked
-    this.
+  - Channel 380, which is not one of the 10 published units, edges out unit 379. It lies in the 5×5 branch, which
+    holds all 30 curve-related `mixed3b` features
+    ([Voss et al. 2021](https://distill.pub/2020/circuits/branch-specialization/)). It is worth inspecting as a
+    candidate curve-related channel; [Gorton 2024](https://arxiv.org/abs/2406.03662) found extra curve features
+    with sparse autoencoders, not as single channels. We have not checked this.
 - **"Specific" also holds on the concept side.** Copying the family from a same-orientation stimulus with a
   different radius, width or polarity almost never changes the decoded orientation. The family does not inject
   nuisance information that the readout mistakes for orientation.
@@ -151,8 +159,8 @@ the same K give 0.359 / 0.442 / 0.792.
   The continuous effect shows that the family's curvature evidence counts in both directions.
 
 ### Wording fixes with no new analysis
-- "About 80 channels are needed" now reads as "about 80 under greedy orderings", which is an upper bound on the
-  smallest sufficient set.
+- "About 80 channels are needed" now reads as "about 80 under fixed per-channel rankings", which is an upper bound
+  on the smallest sufficient set.
 - The H5 curve-absent contrast had no null, so "the family matters more when driven" was removed.
 - E1's 3a row is labelled in-sample, because the orientation convention was fitted there.
 - `families.py` no longer calls Fisher selection an upper bound.
@@ -164,7 +172,7 @@ the same K give 0.359 / 0.442 / 0.792.
 - **Strength of the comparison set.** A data-driven baseline is only as strong as its selection criterion.
   Selecting by the quantity under test (causal effect) is the competitor a specificity claim has to beat.
 - **How the checks ran.** Each check was first run as a read-only diagnostic on the selection split. The
-  overturning outcomes were then fixed in the audit plan before the confirmatory run. Selection and confirmatory
-  results agree closely, for example the complement's ridge-space effect: 0.429 vs 0.427.
+  overturning outcomes were then set in the audit plan before the audit phase scored the confirmatory pairs. The
+  selection-split diagnostics were not saved, so the repository has no record of them.
 - **Reproducibility.** The audit phase uses its own fresh RNG stream. The pre-registered results and the first
   post-hoc round stay byte-identical.

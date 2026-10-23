@@ -71,6 +71,10 @@
 - **End to end, the family is relevant to the network's decisions.** Ablating these 10 of 480 `mixed3b` channels
   changes the 1008-way prediction about 1.8 times as often as ablating matched channels (17.2% vs 9.3%).
   - This is relevance, not orientation-specific evidence.
+  - It is in line with the preliminary removal experiment of
+    [Cammarata et al. 2021](https://distill.pub/2020/circuits/curve-circuits/): removing the 3b curve detectors
+    lowered top-5 accuracy on 2000 ImageNet validation images from 88.6% to 86.3%. That experiment had no matched
+    null.
   - It agrees with the ablation-based relevance criteria of recent vision-unit work
     ([Aguilar Canto et al. 2026](https://icml.cc/virtual/2026/79523), ICML 2026 Mechanistic Interpretability
     Workshop; [Bau et al. 2020](https://doi.org/10.1073/pnas.1907375117)).

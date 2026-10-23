@@ -56,8 +56,9 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 - The LRN-sensitivity run in E2 checks that conclusions do not hinge on the LRN fix.
 
 ## Learnings and issues
-- **PIL draws arc outlines inward from the bounding box**
-  ([ImageDraw.arc](https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html)).
+- **PIL draws an arc's stroke inside its bounding box**
+  ([ImageDraw.arc](https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html): "inside the given bounding
+  box"), so a box of radius r puts the stroke's outer edge, not its centre line, at r.
   - Our first renderer put the stroke's outer edge, not its centre line, on the RF centre (`test_stimuli.py` caught
     this: centre-pixel coverage 0.5).
   - Fix: draw on a circle of radius r + w/2.
@@ -67,11 +68,13 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
     [TF's formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), that means a
     window of 11 and, for PyTorch, alpha × 11.
   - [lucent#51](https://github.com/greentfrapp/lucent/pull/51) itself (open, unmerged) proposes size 10 and k = 2.
-    The size-11 values come from a comment in its discussion, which also reports a maximum error of about 6e-6
-    against the original graph.
+    A third-party [comment](https://github.com/greentfrapp/lucent/pull/51#issuecomment-6345247394) in its
+    discussion (2026-10-22) gives the size-11 values. It reports a largest normalised error of 6e-6 against the
+    original graph run in TensorFlow 2.21.
   - We shim these constants in rather than forking Lucent. The LRN-sensitivity run above shows that the choice does
     not change the conclusions.
-- **Radii {30, 45, 60, 80}** were chosen on the pilot split (seed 0), where both 3b (r ≈ 0.96) and 4a (r ≈ 0.85)
-  matched best. Radius 10 gave 3b r = 0.88 and 4a r = 0.61.
+- **Radii {30, 45, 60, 80}** were chosen on the pilot split (seed 0). There 3b r = 0.965 / 0.968 / 0.959 / 0.933
+  and 4a r = 0.756 / 0.819 / 0.849 / 0.850 (`pilot/pilot_tuning_radii.log`). Radius 10 gave 3b r = 0.88 and
+  4a r = 0.61. No single radius is best for both layers: 3b peaks at 45 and 4a at 80.
 - **Choosing the 3a layer for the convention fit** keeps the 3b and 4a correlations from being inflated by a fit on
   the same data (suggested in the design critique).

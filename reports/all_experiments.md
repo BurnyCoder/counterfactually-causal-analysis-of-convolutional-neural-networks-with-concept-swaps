@@ -36,10 +36,10 @@ Details live in the per-experiment reports, which this page does not repeat:
 95% CI above 0 and a Holm-adjusted p < 0.05. All Holm-adjusted p ≤ 0.004.
 
 **Post-hoc robustness** (added after an independent code review; [details](posthoc_robustness.md)):
-- A stricter rank-matched null and the strongest competitor set (top-10 non-family channels by activation change)
-  leave every conclusion unchanged.
-- The H1 effect is 0.410, against a rank-null q95 of 0.121; the competitor set reaches only 0.125.
-- The ridge readout's decoded orientation moves 57% of the way to the source.
+- A stricter rank-matched null and the 10 non-family channels that change most leave every conclusion unchanged.
+- The H1 effect is 0.410, against a rank-null q95 of 0.121; the most-changing set reaches only 0.125. (The later
+  audit's effect-ranked non-family set is the stronger competitor, at 0.201.)
+- The ridge decoder's (cos, sin) output moves 57% of the way to the source's.
 - Blur-free H5 rotations give a *larger* effect: 0.336 vs 0.287.
 
 ![summary of effects](../figures/summary_effect.png)
@@ -62,7 +62,8 @@ Details live in the per-experiment reports, which this page does not repeat:
   jitter seeds as a stability check.
 - **Hyperparameters.**
   - 72 orientations at 5° steps; decoder tolerance 10°.
-  - Radii {30, 45, 60, 80}, chosen on the pilot split where 3b and 4a matched the published tuning best.
+  - Radii {30, 45, 60, 80}, chosen on the pilot split: there 3b r = 0.93–0.97 and 4a r = 0.76–0.85, against
+    0.88 and 0.61 at radius 10 (`pilot/pilot_tuning_radii.log`).
   - Widths {3, 5}; arc span 120° (under 180°, so an arc never reads as a full circle).
   - 4 sources per base with |Δθ| ≥ 30°, so that base and source decodes are clearly distinct.
   - 2000 null sets, for p ≈ 5·10⁻⁴ resolution.
@@ -74,8 +75,12 @@ Details live in the per-experiment reports, which this page does not repeat:
    - The TF-exact constants (window 11 = 2·depth_radius + 1) come from the discussion of
      [lucent#51](https://github.com/greentfrapp/lucent/pull/51). The PR itself proposes size 10.
    - Sensitivity: the conclusions are unchanged.
-   - Erratum: the frozen pre-registration says "per lucent#51". More precisely, the constants are per a comment in
-     that PR's discussion.
+   - Erratum: the frozen pre-registration says "per lucent#51". More precisely, the constants follow from TF's LRN
+     formula, as also derived in a third-party
+     [comment](https://github.com/greentfrapp/lucent/pull/51#issuecomment-6345247394) in that PR's discussion.
+   - Erratum: the frozen pre-registration (§1) says the Curve Detectors work "lists" 14 `mixed4a` curve units. The
+     14 come from the authors' published tuning data (`curves-mixed4a.json`). The article's figure labels Layer 4a
+     "12 neurons".
 2. **`torch-lucent` 0.1.8 on PyPI pins `kornia<=0.4.1`, and Lucent's `setup.py` breaks on Windows with cp1252.**
    Installed from git, with a uv `extra-build-variables` fix for `PYTHONUTF8`.
 3. **PIL draws arc strokes inward.** The first renderer was off by half a stroke width. A unit test caught it, and
@@ -106,7 +111,8 @@ Details live in the per-experiment reports, which this page does not repeat:
 10. **A second, independent audit found no methodological error, but four claims without their own test.** The
     claims were: "beats a data-driven set" (tested only against an observational Fisher baseline), H2's 81% (no
     per-direction null), the 13× ablation ratio (soft decile null) and "redundant" (true for one readout only).
-    - We fixed each overturning outcome before running.
+    - We set each overturning outcome in the audit plan before running. The outcomes were first committed with the
+      results, so git does not timestamp them.
     - None of the claims was overturned.
     - A causal ranking of all 480 channels recovers 9 of the 10 published units.
     - "Redundant" was replaced by "shared", because the complement transfers orientation in 40% of pairs for the
