@@ -109,3 +109,20 @@ Holm-adjusted p (effect vs delta-matched null): H1_ridge_all4a 0.004, H2 0.004, 
 - H5: 506 curve-present confirmatory images (curve-family score > 145.5); IIA by rotation: -90 deg 0.077, -45 deg 0.030, 45 deg 0.030, 90 deg 0.081, 180 deg 0.140
 - H5 curve-absent contrast (bottom quartile, family only): IIA 0.017, effect 0.135 (n pairs 2585)
 - Relevance (mean ablation over the whole map, 1962 images): top-1 flip rate family 0.172 vs null mean 0.093 (q95 0.110, p=0.0099); KL family 0.2054 vs null mean 0.0501 (q95 0.0692, p=0.0099)
+
+## Post-hoc robustness (NOT pre-registered; added after code review)
+
+Rank-matched null: each curve unit is matched to one of its 10 nearest non-family channels by activation change (1000 sets; 500 for the ridge readout). Top-Δ non-family: the 10 non-family channels with the largest activation change. H5-exact: square crops rotated by -90/90/180 deg (exact transposes, no interpolation blur).
+
+| key | IIA family | rank-null q95 (IIA) | effect family [CI] | rank-null q95 (effect) | effect margin [CI] | p | top-Δ non-family IIA / effect |
+|---|---|---|---|---|---|---|---|
+| H1 | 0.177 | 0.000 | 0.410 [0.400, 0.419] | 0.121 | 0.289 [0.280, 0.298] | 0.001 | 0.000 / 0.125 |
+| H1_ridge_all4a | 0.105 | 0.000 | 0.248 [0.242, 0.253] | 0.135 | 0.112 [0.106, 0.119] | 0.002 | 0.000 / 0.155 |
+| H2 | 0.405 | 0.017 | 0.393 [0.387, 0.399] | 0.100 | 0.293 [0.286, 0.300] | 0.001 | 0.068 / 0.172 |
+| H4 | 0.058 | 0.003 | 0.324 [0.314, 0.334] | 0.146 | 0.178 [0.166, 0.190] | 0.001 | 0.000 / 0.116 |
+| composited | 0.190 | 0.001 | 0.415 [0.406, 0.425] | 0.106 | 0.310 [0.299, 0.320] | 0.001 | 0.001 / 0.123 |
+| H5 | 0.072 | 0.000 | 0.287 [0.263, 0.310] | 0.073 | 0.214 [0.188, 0.239] | 0.001 | 0.000 / 0.083 |
+| H5_exact_rotations | 0.108 | 0.000 | 0.336 [0.310, 0.358] | 0.077 | 0.259 [0.233, 0.282] | 0.001 | 0.000 / 0.066 |
+
+H1-ridge effect in the decoder's (cos, sin) output space: family 0.573 [0.564, 0.583]; rank-null q95 0.126 (p=0.002); decile-null q95 0.097 (p=0.002).
+H5-exact vs the decile-matched null: effect q95 0.079, margin [0.231, 0.281], p=0.001.
