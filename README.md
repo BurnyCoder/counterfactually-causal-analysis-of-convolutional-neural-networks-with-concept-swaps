@@ -42,15 +42,16 @@ unchanged.
 **Post-hoc checks** (not pre-registered; [`reports/posthoc_robustness.md`](reports/posthoc_robustness.md)) leave
 every conclusion unchanged:
 - **A stricter rank-matched null:** the H1 effect is 0.410, against a null q95 of 0.121.
-- **The strongest competitor set** (the 10 non-family channels that change most) reaches only 0.125 and transfers
-  the decoded orientation in 1 of 4574 pairs.
+- **The 10 non-family channels that change most** reach only 0.125 and transfer the decoded orientation in 1 of
+  4574 pairs. The stronger, effect-ranked competitor (below) reaches 0.201.
 - **The H1-ridge effect**, as pre-registered, is measured over all 508 z-scored channels. In the decoded
   orientation's (cos, sin) space it is 0.573.
 - **Blur-free natural rotations** give a larger H5 effect: 0.336 vs 0.287.
 
-A second, independent audit found no methodological error and added four more post-hoc checks, each with its
-overturning outcome written down first: a causally ranked competitor set, per-direction H2 nulls, a cross-nuisance
-sham and a rank-matched ablation null. None overturned a conclusion. The audit did correct the earlier "redundant
+A second, independent audit found no methodological error and tested four claims post hoc: a causally ranked
+competitor set, per-direction H2 nulls, a rank-matched ablation null and the ridge-readout complement. Their
+overturning outcomes were set in the audit plan before the run, but were first committed with the results, so git
+does not timestamp them. It also added a cross-nuisance sham. None overturned a conclusion. The audit did correct the earlier "redundant
 code" wording, which held for only one of the two readouts (see below).
 
 **Takeaways.**
@@ -63,7 +64,8 @@ code" wording, which held for only one of the two readouts (see below).
   - Mean-ablating the family changes Imagenette top-1 predictions on 17.2% of photos, versus 9.3% for matched
     ablations (p = 0.0099).
 - **It is not sufficient.** The pre-registered strong claim fails.
-  - The rest of the orientation signal is spread over many channels: greedy rankings need about 80 for IIA ≈ 0.8.
+  - The rest of the orientation signal is spread over many channels: rankings by activation change or by single-channel effect need about 80 for
+    IIA ≈ 0.8.
   - Whether those channels can replace the family depends on the readout.
     - Swapping the other 470 channels transfers the decoded orientation in 40% of pairs for the 4a curve units.
     - For a decoder over all of `mixed4a`, it transfers it in only 1.9% of pairs. There the family carries 57% of
@@ -87,8 +89,8 @@ Full write-ups:
 ## Methodology
 **Model.** Pretrained InceptionV1 (Lucid "inception5h") loaded with [Lucent](https://github.com/greentfrapp/lucent).
 - Its LRN layers are patched to the TensorFlow-exact constants. The window is 11 = 2·depth_radius + 1 under
-  [TF's LRN formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), as derived in
-  the discussion of [lucent#51](https://github.com/greentfrapp/lucent/pull/51).
+  [TF's LRN formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), as also derived
+  in [a comment on lucent#51](https://github.com/greentfrapp/lucent/pull/51#issuecomment-6345247394).
 - Nothing is trained.
 
 **Explanation under test.**
@@ -156,12 +158,13 @@ uv run python main.py
 - Requires [uv](https://docs.astral.sh/uv/) ≥ 0.8.6, the first version with `extra-build-variables`.
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
 - `pytest` runs 32 tests. It downloads `inception5h.pth` (28 MB) on first use.
-- `--quick` is a smoke test of the whole pipeline, taking a few minutes plus the one-time Imagenette download. It uses separate seeds and writes to
-  `results/quick/`.
+- `--quick` is a smoke test of the whole pipeline. It takes under a minute on an RTX 5070 Laptop once Imagenette is
+  downloaded. It uses separate seeds and writes to `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Three phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the independent audit) and `--phase export` (Hugging Face folder). Later phases read earlier
-phases' results from `results/*.json`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Three phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the independent audit, about 5 min) and `--phase export` (Hugging Face folder). Later phases read earlier
+phases' results from `results/*.json`. To reproduce every number in the reports and the paper, run `main.py`, then
+`--phase posthoc`, `--phase audit` and `--phase report`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
 from the full run's. They are statistically equivalent, but only the full run reproduces the reported numbers exactly. The run is configured through `.env`; see `.env.example`. A CPU run works
 with `DEVICE=cpu` but is much slower. Windows notes are in [`docs/reproducibility.md`](docs/reproducibility.md).
 
@@ -194,8 +197,8 @@ The module graph is in [`docs/architecture.md`](docs/architecture.md). Logs go t
 terminal.
 
 ## Features
-- Interchange interventions over arbitrary channel sets of any Inception block. Patches are applied with forward
-  hooks, or with a cropped-window recomputation verified exact against the full network.
+- Interchange interventions over arbitrary channel sets. Forward hooks can read or patch any layer. A cropped-window
+  recomputation, verified exact against the full network, covers `mixed3a → mixed3b` and `mixed3b → mixed4a`.
 - An anti-aliased parametric curve and line renderer, with factorial grids and counterfactual minimal pairs.
 - A natural-image counterfactual based on rotating the photo about the readout unit's receptive-field centre.
 - Activation-change-matched, branch-matched and random null neuron sets, plus a Fisher-score data-driven
@@ -206,7 +209,7 @@ terminal.
 
 ## Technologies
 - PyTorch 2.14 (CUDA 13.0) and [Lucent](https://github.com/greentfrapp/lucent) (Lucid InceptionV1 port).
-- NumPy, SciPy, pandas, scikit-learn (RidgeCV, AUROC), statsmodels (Holm) and Pillow (rendering).
+- NumPy, pandas, scikit-learn (RidgeCV, AUROC), statsmodels (Holm) and Pillow (rendering).
 - Matplotlib (figures, GIF) and python-dotenv.
 - uv for the environment, pytest for tests, and pdflatex (MiKTeX) for the paper.
 

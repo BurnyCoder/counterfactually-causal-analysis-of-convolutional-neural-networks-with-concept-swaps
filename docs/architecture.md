@@ -24,7 +24,11 @@ graph TD
   MAIN -.->|only when named| EXP[phases/export_hf.py<br/>hf_export/]
   AU --> COMMON
   AU --> PH
+  AU --> E2
+  AU --> E3
   PH --> COMMON
+  PH --> E2
+  PH --> E3
   HERO --> COMMON
   EXP --> COMMON
   E1 --> STIM[stimuli.py<br/>arcs/lines, grids, minimal pairs]
