@@ -19,7 +19,7 @@ from concept_swap.log import get_logger
 from concept_swap.phases.common import interchange_experiment, make_split, save_json, success
 from concept_swap.phases.e2_synthetic import curvature, mean_ablation
 from concept_swap.phases.e3_natural import halves, mixed3b_moments
-from concept_swap.phases.posthoc import cos_sin_effects
+from concept_swap.phases.posthoc import cos_sin_effects, decoded_iia
 
 log = get_logger(__name__)
 NONE = dict(null_kinds=())  # score only the named sets: no null sampling, so no RNG draws
@@ -29,7 +29,8 @@ def effect_ranked(cfg: Config, model, sel, ex: dict, p_sel, fam: list[int], fam4
     """(a) Rank every mixed3b channel by its single-channel patching effect on the selection split, then score the
     family against the top-10 by effect and the top-10 non-family by effect on the confirmatory H1 pairs.
 
-    Local: selection is the only data used for ranking, so the confirmatory comparison is out of sample.
+    Local: only the selection split is used for ranking. It differs from the confirmatory split only by a +-2 px jitter
+    per nuisance cell, so the ranking is close to in-sample for the confirmatory stimuli, which favours the competitor.
     Global context: a causal analogue of Fisher selection (Baeumel et al. 2025, https://arxiv.org/abs/2508.02513)
     and the strongest competitor set for the claim that the published family is special.
     """
@@ -59,11 +60,9 @@ def ridge_complement(cfg: Config, model, sel, test, p_sel, p_test, fam: list[int
     exr = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam, np.arange(test.col.readout.shape[1]), rng, 0,
                                  kind="ridge", **NONE)
     num, den, R = cos_sin_effects(exr, model, test, [exr["named"]["family"], exr["named"]["complement"]])
-    ang = np.degrees(np.arctan2(R[..., 1], R[..., 0])) % 360  # decoded angle of each patched base
-    src = exr["clean"][exr["pairs"].source.values[exr["elig"]]]  # decoded clean source angle (eligible pairs)
-    iia = (np.abs(S.circ_diff(ang, src)) <= cfg.tol_deg).mean(1)  # (2,) family, complement
+    iia = decoded_iia(exr, R, cfg.tol_deg)  # (2,) family, complement
     return dict(cos_sin_effect=dict(family=float(num[0].sum() / den.sum()), complement=float(num[1].sum() / den.sum())),
-                iia=dict(family=float(iia[0]), complement=float(iia[1])), n_pairs=int(len(src)))
+                iia=dict(family=float(iia[0]), complement=float(iia[1])), n_pairs=int(len(den)))
 
 
 def nuisance_sham(cfg: Config, model, test, ex: dict) -> dict:

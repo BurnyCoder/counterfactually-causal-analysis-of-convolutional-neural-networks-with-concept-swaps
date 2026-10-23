@@ -157,6 +157,44 @@ def audit_section(a: dict) -> tuple[list[str], dict]:
     return L, m
 
 
+def audit2_section(a: dict) -> tuple[list[str], dict]:
+    """Markdown lines and LaTeX macros for results/posthoc_audit2.json (post-hoc checks added by the third audit)."""
+    rr, ad, h5 = a["ridge_effect_ranked"], a["additivity_by_branch"], a["h5_blur_matched"]
+    L = ["", "## Third-audit checks (NOT pre-registered; post-hoc, exploratory)", "",
+         "Ridge-readout causal ranking: all mixed3b channels ranked by single-channel effect in the ridge decoder's (cos, sin) "
+         f"output on the selection split. Family ranks: {rr['family_ranks']}; top-10: {rr['top10_by_effect']} "
+         f"({rr['overlap_top10_family']} of 10 are family units).", "",
+         "| set (ranked on selection, scored on confirmatory pairs) | decoded-angle IIA | (cos, sin) effect | effect difference, family minus set [CI] |",
+         "|---|---|---|---|"]
+    L += [f"| {n} | {_f(rr['iia'][n])} | {_f(rr['effect'][n])} | {_ci(rr['effect_diff_ci'][n]) if n in rr['effect_diff_ci'] else '—'} |" for n in rr["iia"]]
+    groups = {k: v for k, v in ad.items() if isinstance(v, dict)}  # skip the n_pairs entry
+    L += ["", f"Additivity by mixed4a group ({ad['n_pairs']} H1 pairs, z-scored pre-ReLU readout): non-additivity = "
+              "sum|D_F + D_C - D_all|^2 / sum|D_all|^2 (0 = exactly additive); effects are projections on D_all within the group.", "",
+          "| group | channels | non-additivity | effect family | effect complement | sum |", "|---|---|---|---|---|---|"]
+    L += [f"| {k} | {v['n_channels']} | {v['nonadditivity']:.2g} | {_f(v['effect_family'])} | {_f(v['effect_complement'])} | "
+          f"{_f(v['effect_family'] + v['effect_complement'])} |" for k, v in groups.items()]
+    ang = h5["angles"]
+    L += ["", f"H5 on matched angles ({', '.join(map(str, ang))} deg; {h5['n_images']} curve-present confirmatory photos, {h5['n_pairs']} pairs; "
+              "family only). Original = rotations as in the pre-registered H5 (180 deg is an exact transpose, 90 deg is bilinear on non-square "
+              "images); exact = square crops, exact transposes at every angle.", "",
+          "| rotations | effect | IIA | " + " | ".join(f"effect / IIA at {x} deg" for x in ang) + " |", "|---|---|---|" + "---|" * len(ang)]
+    L += [f"| {m} | {_f(h5[m]['effect'])} | {_f(h5[m]['iia'])} | " + " | ".join(f"{_f(v['effect'])} / {_f(v['iia'])}" for v in h5[m]["by_angle"].values())
+          + " |" for m in ("original", "exact")]
+    L += ["", f"Effect difference, exact minus original: {_f(h5['effect_diff'])} {_ci(h5['effect_diff_ci'])} (photo-cluster bootstrap)."]
+    m = {"TrRidgeOverlap": str(rr["overlap_top10_family"]), "TrRidgeFamRankMax": str(max(rr["family_ranks"])),
+         "TrRidgeFamEff": _f(rr["effect"]["family"]), "TrRidgeFamIIA": _f(rr["iia"]["family"]), "TrRidgeTopEff": _f(rr["effect"]["top10_by_effect"]),
+         "TrRidgeTopNFEff": _f(rr["effect"]["top10_nonfamily_by_effect"]), "TrRidgeTopNFIIA": _f(rr["iia"]["top10_nonfamily_by_effect"]),
+         "TrRidgeDiffNFLo": _f(rr["effect_diff_ci"]["top10_nonfamily_by_effect"][0]),
+         "TrRidgeDiffNFHi": _f(rr["effect_diff_ci"]["top10_nonfamily_by_effect"][1]),
+         "TrBlurOrigEff": _f(h5["original"]["effect"]), "TrBlurExactEff": _f(h5["exact"]["effect"]), "TrBlurOrigIIA": _f(h5["original"]["iia"]),
+         "TrBlurExactIIA": _f(h5["exact"]["iia"]), "TrBlurDiff": _f(h5["effect_diff"]), "TrBlurDiffLo": _f(h5["effect_diff_ci"][0]),
+         "TrBlurDiffHi": _f(h5["effect_diff_ci"][1])}
+    names = {"1x1": "One", "3x3": "Three", "5x5": "Five", "pool_reduce": "Pool", "curve_units_1x1": "CurveOne",
+             "curve_units_5x5": "CurveFive", "curve_units_all": "Curve"}  # digits are not allowed in macro names
+    m |= {f"TrNonAdd{names[k]}": _f(v["nonadditivity"]) for k, v in groups.items()}
+    return L, m
+
+
 def figures(cfg: Config, e2: dict, e3: dict) -> None:
     """All E2/E3 figures, drawn from the result JSONs (null distributions, |dtheta| bins, dose-response)."""
     nulls = lambda h, m: {"activation-change-matched null": h[f"null_{m}"]["delta_matched"],  # per-set null values
@@ -257,6 +295,10 @@ def run(cfg: Config) -> dict:
         au_lines, au_macros = audit_section(load("posthoc_audit"))
         L += au_lines
         macros += "\n".join(f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in au_macros.items()) + "\n"
+    if (cfg.results_dir / "posthoc_audit2.json").exists():  # optional third-audit section (main.py --phase audit2)
+        a2_lines, a2_macros = audit2_section(load("posthoc_audit2"))
+        L += a2_lines
+        macros += "\n".join(f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in a2_macros.items()) + "\n"
     out.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")  # LF on every OS
     (out.parent / ("numbers_quick.tex" if cfg.quick else "numbers.tex")).write_text(macros, encoding="utf-8", newline="\n")
     # summary figures: one row per test, IIA first, then the same rows with the continuous effect
