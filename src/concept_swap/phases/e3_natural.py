@@ -35,7 +35,7 @@ def as_tensor(X: np.ndarray) -> torch.Tensor:
     return torch.from_numpy(X).permute(0, 3, 1, 2)
 
 
-def composited(cfg: Config, model, fam3b, fam4a, rng, bg_paths: list, n_rep: int = 2) -> dict:
+def composited(cfg: Config, model, fam3b, fam4a, rng, bg_paths: list, n_rep: int = 2, **kw) -> dict:
     """H1 robustness: arcs drawn over natural backgrounds; one background per nuisance cell (shared by every
     orientation in that cell, so pairs still differ only in theta), same backgrounds in selection and test splits."""
     c2 = replace(cfg, sources_per_base=2)
@@ -48,7 +48,7 @@ def composited(cfg: Config, model, fam3b, fam4a, rng, bg_paths: list, n_rep: int
         return Split(g, I.collect(model, X, "mixed4a", cfg.device, cfg.batch_size)), S.minimal_pairs(g, c2, seed)
 
     (sel, p_sel), (test, p_test) = split(cfg.selection_seed), split(cfg.confirm_seed)
-    ex = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam3b, fam4a, rng, cfg.n_null_sets // 2)
+    ex = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam3b, fam4a, rng, cfg.n_null_sets // 2, **kw)
     return summarize(cfg, ex, rng, "H1 on natural backgrounds (arcs composited onto Imagenette crops)")
 
 
@@ -61,24 +61,24 @@ def family_score(cfg: Config, model, paths: list, fam3b) -> np.ndarray:
     return np.concatenate(out)
 
 
-def rotation_split(cfg: Config, model, paths: list) -> tuple[Split, pd.DataFrame]:
+def rotation_split(cfg: Config, model, paths: list, square: bool = False) -> tuple[Split, pd.DataFrame]:
     """Clean versions (angle 0 + each rotation) of every image, and (base = angle 0, source = rotated) pairs."""
     angles = [0, *cfg.rotations]
     g = pd.DataFrame([dict(image=i, angle=a, theta=a % 360, cell=i) for i in range(len(paths)) for a in angles])
-    X = np.stack([N.crop(paths[r.image], r.angle) for r in g.itertuples()])
+    X = np.stack([N.crop(paths[r.image], r.angle, square) for r in g.itertuples()])  # square: exact 90/180/270 rotations
     sp = Split(g, I.collect(model, as_tensor(X), "mixed4a", cfg.device, cfg.batch_size))
     idx = {(r.image, r.angle): k for k, r in enumerate(g.itertuples())}
     pairs = pd.DataFrame([dict(base=idx[(i, 0)], source=idx[(i, a)], dtheta=float(a)) for i in range(len(paths)) for a in cfg.rotations])
     return sp, pairs
 
 
-def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths: list) -> dict:
+def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths: list, square: bool = False, **kw) -> dict:
     """H5: natural rotation counterfactual on curve-present crops (+ exploratory curve-absent contrast)."""
     s_sel, s_test = family_score(cfg, model, sel_paths, fam3b), family_score(cfg, model, test_paths, fam3b)
     thr, low = np.quantile(s_sel, 0.75), np.quantile(s_sel, 0.25)
     pick = lambda ps, m: [p for p, k in zip(ps, m) if k]  # paths where mask m is True
-    sel, p_sel = rotation_split(cfg, model, pick(sel_paths, s_sel > thr))
-    test, p_test = rotation_split(cfg, model, pick(test_paths, s_test > thr))
+    sel, p_sel = rotation_split(cfg, model, pick(sel_paths, s_sel > thr), square)
+    test, p_test = rotation_split(cfg, model, pick(test_paths, s_test > thr), square)
     z = R.ZScore().fit(sel.col.readout.numpy()[:, fam4a])  # z statistics from the selection half only
 
     def readout_for(sp):  # templates = the photo's own clean versions (nearest-version decoder)
@@ -86,12 +86,12 @@ def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths:
                                                                       sp.grid.cell.values), "template")
 
     ex = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam3b, fam4a, rng, cfg.n_null_sets // 2,
-                                readout=readout_for(test))
+                                readout=readout_for(test), **kw)
     out = summarize(cfg, ex, rng, "H5: natural rotation counterfactual (curve-present Imagenette crops)")
     out.update(threshold=float(thr), n_images_test=int(len(test.grid) // (1 + len(cfg.rotations))),
                iia_by_angle={str(a): float(((np.abs(S.circ_diff(ex["outs"]["family"][:, 0], ex["clean"][p_test.source.values])) <= cfg.tol_deg)
                                              [ex["elig"] & (p_test.dtheta.values == a)]).mean()) for a in cfg.rotations})
-    absent, p_abs = rotation_split(cfg, model, pick(test_paths, s_test <= low))  # many crops score exactly 0 (ReLU)
+    absent, p_abs = rotation_split(cfg, model, pick(test_paths, s_test <= low), square)  # many crops score exactly 0 (ReLU)
     rd = readout_for(absent)
     zb, zs = (z(absent.col.readout.numpy()[i][:, fam4a]) for i in (p_abs.base.values, p_abs.source.values))
     o = I.patched_readouts(model, "mixed4a", absent.col.windows, p_abs.base.values, p_abs.source.values, [fam3b], fam4a,

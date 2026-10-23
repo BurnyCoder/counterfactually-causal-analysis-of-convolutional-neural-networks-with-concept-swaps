@@ -48,6 +48,33 @@ def delta_matched_sets(delta: np.ndarray, family: list[int], n_sets: int, rng: n
                      for _ in range(n_sets)])
 
 
+def rank_matched_sets(delta: np.ndarray, family: list[int], n_sets: int, rng: np.random.Generator,
+                      pool: int = 10) -> np.ndarray:
+    """Post-hoc, stricter null: for every family unit, one distinct non-family channel among the `pool` channels
+    closest to it in delta.
+
+    Local: unlike decile matching, this follows the family into the extreme tail (all 10 curve units lie above the
+    96th delta percentile, so a decile null mostly draws channels that change less). Global context: added after the
+    confirmatory run in response to code review; reported as post-hoc in reports/posthoc_robustness.md.
+    """
+    others = np.setdiff1d(np.arange(len(delta)), family)  # candidate channels
+    near = [others[np.argsort(np.abs(delta[others] - delta[f]))[:pool]] for f in family]  # nearest by delta, per unit
+    sets = []
+    for _ in range(n_sets):
+        chosen: list[int] = []
+        for i in rng.permutation(len(family)):  # random order so no unit always gets first pick
+            cand = np.setdiff1d(near[i], chosen)  # keep channels distinct within a set
+            chosen.append(int(rng.choice(cand if len(cand) else np.setdiff1d(others, chosen))))
+        sets.append(chosen)
+    return np.array(sets)
+
+
+def top_nonfamily(delta: np.ndarray, family: list[int], k: int) -> np.ndarray:
+    """The k non-family channels with the largest delta (the strongest single competitor set), in descending order."""
+    order = np.argsort(-delta)  # largest delta first
+    return order[~np.isin(order, family)][:k]  # boolean mask keeps the order (np.setdiff1d would re-sort)
+
+
 def pool_sets(pool: np.ndarray, size: int, n_sets: int, rng: np.random.Generator) -> np.ndarray:
     """`n_sets` random subsets of `pool`, each of `size` distinct channels (branch-matched / random nulls)."""
     return np.stack([rng.choice(pool, size, replace=False) for _ in range(n_sets)])
