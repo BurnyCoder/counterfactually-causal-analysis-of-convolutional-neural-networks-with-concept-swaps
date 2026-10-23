@@ -53,6 +53,12 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
   for 3a and 3b, and well for most 4a units, with either LRN variant.
 - The observational part of the explanation (orientation tuning that tiles 360°) replicates. We therefore treat
   failures of the interventional tests (E2/E3) as properties of the network, not of the setup.
+- **"Replicates" is a descriptive judgement.**
+  - E1 has no pre-registered pass threshold.
+  - The r values are somewhat optimistic, because the radii were chosen on the pilot to maximise agreement with the
+    same published curves.
+  - The conclusion does not hinge on that choice. On the pilot, 3b r was at least 0.929 at every radius from 20 to
+    80 px, and 0.86–0.88 at 10–15 px.
 - The LRN-sensitivity run in E2 checks that conclusions do not hinge on the LRN fix.
 
 ## Learnings and issues

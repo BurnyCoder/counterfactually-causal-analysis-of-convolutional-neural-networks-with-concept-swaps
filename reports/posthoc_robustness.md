@@ -44,7 +44,8 @@ Run it with `uv run python main.py --phase posthoc`.
 - Every margin over the rank-matched q95 has a 95% pigeonhole CI above 0.
 - Every permutation p is at its floor: 0.001 with 1000 sets, 0.002 with 500.
 - IIA against the rank-matched null: the null q95 is at most 0.003 for every test except H2 (0.017).
-- **H5 exact-rotation IIA** is 0.108 [0.080, 0.141], against 0.072 for the original rotations.
+- **H5 exact-rotation IIA** is 0.108 [0.080, 0.141], against 0.072 for the original rotations. These runs use
+  different angle sets (see the third round).
 
 ## Interpretation
 - **The stricter null changes little.**
@@ -58,8 +59,11 @@ Run it with `uv run python main.py --phase posthoc`.
   - The ridge readout's predicted orientation vector moves 57% of the way to the source's, yet lands within 10° of
     it in only 10.5% of pairs.
   - So the swap rotates the decoded orientation part of the way, consistent with partial mediation.
-- **The blur confound did not create the H5 effect.** With blur-free rotations the effect is *larger* (0.336 vs
-  0.287), and IIA rises from 0.072 to 0.108.
+- **The blur confound did not create the H5 effect.** With blur-free rotations the effect is 0.336, far above its
+  null.
+  - *Corrected in the third round.* The earlier "larger than 0.287" comparison mixed angle sets: the exact run has
+    no ±45°.
+  - On matched angles, blur changes neither the effect nor IIA measurably.
 - **The pre-registered conclusion stands:** a specific but partial mediator. H1's strict sufficiency claim remains
   falsified under every analysis.
 
@@ -151,7 +155,8 @@ the same K give 0.359 / 0.442 / 0.792.
     shift.
   - "Redundant" (the rest can substitute for the family) is therefore readout-dependent. The README, the reports and
     the paper now say "shared".
-- **Additivity is largely architectural.** The family and complement effects sum to 1.000 for both readouts:
+- **Additivity is largely architectural** (*corrected in the third round*: architectural only for the 1×1 and pool
+  branches; empirical for the 8 5×5-branch readout units). The family and complement effects sum to 1.000 for both readouts:
   0.410 + 0.590, and 0.573 + 0.427. Max-pooling acts per channel, 6 of the 14 curve readout units are linear in the
   pooled channels, and the ridge decoder is linear. The abstract and README no longer present additivity as a
   finding about the code.
@@ -211,7 +216,7 @@ It did find one confounded post-hoc comparison and several interpretive claims t
    - 34–74% of pairs are unchanged, and 10–50% land within 30° of the predicted shift.
 6. **E1 has no pre-registered pass threshold, and its radii were chosen on the pilot.**
    - The radii were chosen to maximise agreement with the same published curves, so the r values are optimistic.
-   - The conclusion is robust: on the pilot, 3b r ≥ 0.93 at every radius from 20 to 80 px.
+   - The conclusion is robust: on the pilot, 3b r ≥ 0.929 at every radius from 20 to 80 px.
 7. **Minor issues.**
    - "Out of sample" in the causal ranking means only another ±2 px jitter. This favours the competitor.
    - "No 10-channel set reached IIA ≥ 0.5" means no *tested* set.
@@ -227,3 +232,34 @@ that phase first touched confirmatory data, so git timestamps the rules.
 | (g) The family is special under the whole-layer readout too | Rank all 480 `mixed3b` channels by single-channel effect in the ridge decoder's (cos, sin) output on the selection split; score the top-10 non-family set on the confirmatory pairs | The top-10 non-family (cos, sin) effect ≥ the family's |
 | (h) Removing interpolation blur increases the H5 effect | Family effect and IIA per angle, for the original and the exact rotations, on the same curve-present photos and the same angles (−90/90/180°); photo-cluster bootstrap CI of the difference | The CI of (exact − original) effect does not lie above 0. The claim is then replaced by the matched-angle numbers. Sanity check: the 180° effect is nearly equal in both modes |
 | (i) Additivity is largely structural | Relative non-additivity Σ‖Δ_F + Δ_C − Δ_all‖² / Σ‖Δ_all‖², per `mixed4a` branch and for the 6 1×1 and 8 5×5 readout units | Below 0.05 for the 3×3/5×5 branches or the 8 5×5 readout units. The wording then becomes "exact for the 1×1 and pool branches by construction, near-additive elsewhere empirically" |
+
+### Results
+Run log: `logs/20261023_230809.log`. Tables: [`generated/results.md`](generated/results.md#third-audit-checks-not-pre-registered-post-hoc-exploratory).
+
+| Check | Result | Outcome under the rule |
+|---|---|---|
+| (g) Ridge-readout causal ranking | 8 of the top 10 channels are family units; every family unit ranks within the top 24. The family's (cos, sin) effect is 0.573 (IIA 0.105). The best 10 non-family channels reach 0.211 (IIA 0.003), and the family's margin over them is CI [0.350, 0.374]. The causal top-10 (8 family units plus channels 359 and 357) reaches 0.596 | not overturned |
+| (h) H5 blur on matched angles | Effect 0.335 with the original rotations vs 0.336 with exact transposes. The difference is 0.000, CI [−0.001, 0.001]. IIA is 0.108 in both. Per angle (original / exact effect): −90° 0.322 / 0.322, 90° 0.324 / 0.324, 180° 0.356 / 0.357 | claim withdrawn |
+| (i) Additivity | Non-additivity is 2·10⁻¹³ (1×1 branch) and 3·10⁻¹³ (pool branch), i.e. exact to fp32. It is 0.095 (3×3 branch) and 0.070 (5×5 branch). For the 14 curve readout units: 0 for the 6 1×1 units, 0.018 for the 8 5×5 units, and 0.011 overall | wording changed |
+
+### Interpretation
+- **(g) Specificity does not hinge on the circular readout.**
+  - Ranked by their effect on a decoder over the whole of `mixed4a`, 8 of the 10 published units are still among
+    the 10 most effective `mixed3b` channels.
+  - The best non-family set moves the decoded orientation only 21% of the way, against 57% for the family.
+  - A set chosen by this ranking slightly beats the family (0.596 vs 0.573). It was selected on stimuli that differ
+    from the confirmatory ones only in jitter, so this is close to an in-sample comparison.
+- **(h) Interpolation blur is irrelevant for H5.**
+  - With the same photos, angles and templates, exact transposes and bilinear rotations give the same effect and IIA.
+  - The earlier comparison, 0.336 vs 0.287 (IIA 0.108 vs 0.072), compared different angle sets. The pre-registered
+    H5 includes ±45°, where the family transfers least (IIA 0.030), and has six templates per photo instead of four.
+  - Blur cannot be tested at ±45°, because no rotation by 45° is exact.
+  - The higher IIA at 180° remains in the exact run, so it is an angle effect, not a blur effect.
+- **(i) Additivity is part architecture, part empirical regime.**
+  - It is exact only in the 1×1 and pool branches, where max-pooling and a linear 1×1 convolution act per channel.
+  - For the 8 readout units in the 5×5 branch, swapping the family and the complement adds up to within 1.8%
+    (squared-norm ratio). That is a property of these stimuli, not of the architecture.
+  - The unit test `test_readout_additivity_is_structural_only_for_1x1_and_pool_branches` confirms the architectural
+    part: with sparse random inputs, the 3×3 and 5×5 branches are not additive.
+  - The projected effects still sum to 1.000 in every branch: the interaction is almost orthogonal to the
+    base-to-source direction.

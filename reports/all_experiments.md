@@ -17,7 +17,7 @@ Details live in the per-experiment reports, which this page does not repeat:
 | E1 (gate) | The published tuning replicates: 3b r = 0.969, 4a r = 0.847, with the orientation convention fitted on 3a only. |
 | E2 (test) | **H1 falsified**: IIA 0.177 [0.156, 0.199]. The family is still far above every matched null (IIA null q95 ≤ 0.001; effect 0.410 vs 0.098). |
 | E3 (generalisation) | The same pattern holds on natural backgrounds (IIA 0.190, effect 0.415). Under a natural rotation counterfactual the effect is 0.287 vs a null q95 of 0.075. Ablation changes 17.2% of top-1 predictions vs 9.3% for matched ablations. |
-| Refined hypothesis | **The curve family is a specific, partial mediator of a shared orientation code.** A causal ranking of all 480 channels picks 9 of its 10 units as the top 10. It carries 41% of the curve-unit displacement and 57% of the whole-layer decoded-orientation displacement. The rest sits in many other channels (about 80 needed for IIA ≈ 0.8). Whether they can replace the family depends on the readout: complement IIA 0.40 for the 4a curve units, 0.019 for the whole-layer ridge decoder. Effects add almost exactly (about 0.04 per unit), largely by architecture. The family carries curvature evidence that 4a curve units use (H2: line → arc flips 81%, matched-null q95 11%). |
+| Refined hypothesis | **The curve family is a specific, partial mediator of a shared orientation code.** A causal ranking of all 480 channels picks 9 of its 10 units as the top 10 for the 4a curve units, and 8 of 10 for a whole-layer decoder. It carries 41% of the curve-unit displacement and 57% of the whole-layer decoded-orientation displacement. The rest sits in many other channels (about 80 needed for IIA ≈ 0.8). Whether they can replace the family depends on the readout: complement IIA 0.40 for the 4a curve units, 0.019 for the whole-layer ridge decoder. Effects add almost exactly (about 0.04 per unit): exactly by architecture for the 6 1×1-branch readout units, empirically (within 1.8%) for the 8 5×5-branch units. The family carries curvature evidence that 4a curve units use (H2: line → arc flips 81%, matched-null q95 11%). |
 
 ## Overview of all pre-registered tests
 
@@ -40,7 +40,8 @@ Details live in the per-experiment reports, which this page does not repeat:
 - The H1 effect is 0.410, against a rank-null q95 of 0.121; the most-changing set reaches only 0.125. (The later
   audit's effect-ranked non-family set is the stronger competitor, at 0.201.)
 - The ridge decoder's (cos, sin) output moves 57% of the way to the source's.
-- Blur-free H5 rotations give a *larger* effect: 0.336 vs 0.287.
+- Interpolation blur does not change H5. On matched angles, exact and bilinear rotations give the same effect (0.336
+  vs 0.335; third audit). An earlier "larger blur-free effect" (0.336 vs 0.287) compared different angle sets.
 
 ![summary of effects](../figures/summary_effect.png)
 
@@ -119,12 +120,25 @@ Details live in the per-experiment reports, which this page does not repeat:
       curve-unit readout but in 1.9% for the whole-layer readout.
     - Details: [posthoc_robustness.md](posthoc_robustness.md#second-round-independent-audit-not-pre-registered).
 
+11. **A third independent audit found no error that invalidates a pre-registered finding.**
+    - It found one confounded post-hoc comparison: the blur-free H5 run also dropped the ±45° rotations.
+    - It also found several claims stated more broadly than their evidence: additivity as "largely architectural",
+      the causal ranking tested on one readout only, H2's asymmetry, the family-rotation mean, and E1's
+      optimistic r.
+    - This time the overturning rules were committed to git before the checks ran (phase `audit2`).
+    - Outcomes:
+      - The blur claim was withdrawn: matched angles show no blur effect.
+      - The causal ranking holds under the whole-layer readout: 8 of 10 family units in the top 10.
+      - Additivity is exact only in the 1×1 and pool branches; elsewhere it is empirical.
+    - Details: [posthoc_robustness.md](posthoc_robustness.md#third-round-independent-audit-not-pre-registered).
+
 ### What did not work, or remains open
-- **Strict sufficiency of the 10 units.** No 10-channel set reached IIA ≥ 0.5. The top 20 channels by
+- **Strict sufficiency of the 10 units.** No tested 10-channel set reached IIA ≥ 0.5. The top 20 channels by
   single-channel patching effect reach 0.485 and the top 40 reach 0.693 (post-hoc audit).
-- **The family-rotation activation swap** shifts the decoded orientation in the right direction, but by only 21–39%
-  of the predicted angle (k = 5 aside). This is a channel reassignment within the family, inspired by the
-  concept-swap tests of Gurnee et al. 2026.
+- **The family-rotation activation swap** moves the circular-mean decoded orientation in the right direction, but
+  only 21–39% of the predicted angle (k = 5 aside). That mean mixes 34–74% unchanged pairs with 10–50% that land
+  within 30° of the prediction. This is a channel reassignment within the family, inspired by the concept-swap tests
+  of Gurnee et al. 2026.
 - **Open:** whether SAE features ([Gorton 2024](https://arxiv.org/abs/2406.03662)) or a learned subspace
   (distributed alignment search, [Geiger et al. 2024](https://arxiv.org/abs/2303.02536)) would form a
   *sufficient* orientation mediator with few dimensions.
