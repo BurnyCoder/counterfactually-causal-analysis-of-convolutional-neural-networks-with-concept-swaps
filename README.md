@@ -20,12 +20,13 @@ with the 3b curve family copied from the source (blue), and the clean source (or
 ![Orientation sweep](figures/concept_swap_sweep.gif)
 
 ## Results
-Every hypothesis, metric and threshold was pre-registered before the confirmatory run. All numbers below come from
+Every interventional hypothesis, metric and threshold was pre-registered before the confirmatory run. E1 is a
+descriptive gate without a pre-registered threshold. All numbers below come from
 [`reports/generated/results.md`](reports/generated/results.md), with 95% pigeonhole-bootstrap CIs.
 
 | Test | IIA family | Matched-null q95 | Effect family | Matched-null q95 | Verdict |
 |---|---|---|---|---|---|
-| E1: tuning vs published (3b / 4a) | r = 0.969 / 0.847 | 0.254 / 0.242 (permutation) | — | — | replicated |
+| E1: tuning vs published (3b / 4a) | r = 0.969 / 0.847 | 0.254 / 0.242 (permutation) | — | — | replicated (descriptive) |
 | **H1 primary: 3b curve family → 4a curve units** | **0.177** [0.156, 0.199] | 0.001 | **0.410** [0.400, 0.420] | 0.098 | **falsified** (IIA < 0.2) |
 | H1-ridge: → all 508 `mixed4a` channels | 0.105 [0.087, 0.123] | 0.000 | 0.248 | 0.106 | supported* |
 | H2 curvature swap (line ↔ arc) | 0.405 [0.371, 0.440] | 0.054 | 0.393 | 0.141 | supported* |
@@ -46,7 +47,9 @@ every conclusion unchanged:
   4574 pairs. The stronger, effect-ranked competitor (below) reaches 0.201.
 - **The H1-ridge effect**, as pre-registered, is measured over all 508 z-scored channels. In the decoded
   orientation's (cos, sin) space it is 0.573.
-- **Blur-free natural rotations** give a larger H5 effect: 0.336 vs 0.287.
+- **Interpolation blur does not matter for H5.** On matched angles, exact and bilinear rotations give the same
+  effect: 0.336 vs 0.335. An earlier claim of a larger blur-free effect (0.336 vs 0.287) compared different angle
+  sets.
 
 A second, independent audit found no methodological error and tested four claims post hoc: a causally ranked
 competitor set, per-direction H2 nulls, a rank-matched ablation null and the ridge-readout complement. Their
@@ -54,13 +57,21 @@ overturning outcomes were set in the audit plan before the run, but were first c
 does not timestamp them. It also added a cross-nuisance sham. None overturned a conclusion. The audit did correct the earlier "redundant
 code" wording, which held for only one of the two readouts (see below).
 
+A third independent audit again found no error that invalidates a pre-registered finding. It committed its
+overturning rules before its checks ran. Three outcomes:
+- It withdrew the blur claim above.
+- It confirmed the causal ranking under the whole-layer readout too.
+- It narrowed the additivity claim (below).
+
 **Takeaways.**
 - **The curve family is a highly specific causal mediator,** compared with other `mixed3b` channels.
   - The best of 4000 activation-change-matched and branch-matched sets of 10 channels transfers orientation in
     only 0.13% of pairs.
   - The family moves the next layer's curve code 41% of the way to the source.
-  - Ranking all 480 channels by their own patching effect (post hoc) puts 9 of the 10 published units in the top 10.
-    The 10 best non-family channels reach only 0.201.
+  - Ranking all 480 channels by their own patching effect (post hoc) puts 9 of the 10 published units in the top 10
+    for the 4a curve units, and 8 of 10 for a decoder over all of `mixed4a`.
+  - The 10 best non-family channels under these rankings reach only 0.201 and 0.211. The family reaches 0.410 and
+    0.573.
   - Mean-ablating the family changes Imagenette top-1 predictions on 17.2% of photos, versus 9.3% for matched
     ablations (p = 0.0099).
 - **It is not sufficient.** The pre-registered strong claim fails.
@@ -70,11 +81,15 @@ code" wording, which held for only one of the two readouts (see below).
     - Swapping the other 470 channels transfers the decoded orientation in 40% of pairs for the 4a curve units.
     - For a decoder over all of `mixed4a`, it transfers it in only 1.9% of pairs. There the family carries 57% of
       the decoded shift (post hoc).
-  - Effects add almost exactly, at about 0.04 per curve unit, largely because of the architecture: max-pooling is
-    per channel and 6 of the 14 readout units are linear in it.
+  - Effects add almost exactly, at about 0.04 per curve unit.
+    - For the 6 readout units in the 1×1 branch this is exact by architecture: max-pooling is per channel, followed
+      by a linear 1×1 convolution.
+    - For the 8 units in the 5×5 branch it is an empirical near-additivity (1.8% interaction), not a structural one.
 - **The family carries curvature evidence.** Inserting its arc activations into a line image makes the 4a curve
   units read "arc" in 81% of pairs. Matched controls do so in 3% on average, and 95% of them in under 11.4%. The
-  reverse swap rarely flips "arc" to "line" (0.3%).
+  reverse swap rarely flips "arc" to "line" (0.3%). That asymmetry comes from the decoder, not the family: the family
+  moves the readout about as far in each direction (effect 0.418 vs 0.367), and the correlation decoder's line/arc
+  boundary sits less than halfway from the line template.
 
 Full write-ups:
 - [`reports/summary.md`](reports/summary.md): plain-language summary and glossary.
@@ -157,14 +172,14 @@ uv run python main.py
 
 - Requires [uv](https://docs.astral.sh/uv/) ≥ 0.8.6, the first version with `extra-build-variables`.
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
-- `pytest` runs 32 tests. It downloads `inception5h.pth` (28 MB) on first use.
+- `pytest` runs 34 tests. It downloads `inception5h.pth` (28 MB) on first use.
 - `--quick` is a smoke test of the whole pipeline. It takes under a minute on an RTX 5070 Laptop once Imagenette is
   downloaded. It uses separate seeds and writes to `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Three phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the independent audit, about 5 min) and `--phase export` (Hugging Face folder). Later phases read earlier
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Four phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the second, independent audit, about 5 min), `--phase audit2` (checks added by the third audit, about 4 min) and `--phase export` (Hugging Face folder). Later phases read earlier
 phases' results from `results/*.json`. To reproduce every number in the reports and the paper, run `main.py`, then
-`--phase posthoc`, `--phase audit` and `--phase report`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
+`--phase posthoc`, `--phase audit`, `--phase audit2` and `--phase report`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
 from the full run's. They are statistically equivalent, but only the full run reproduces the reported numbers exactly. The run is configured through `.env`; see `.env.example`. A CPU run works
 with `DEVICE=cpu` but is much slower. Windows notes are in [`docs/reproducibility.md`](docs/reproducibility.md).
 
@@ -218,7 +233,7 @@ terminal.
 |---|---|
 | `main.py` | pipeline wrapper |
 | `src/concept_swap/` | library modules (`model`, `stimuli`, `interventions`, `readouts`, `families`, `stats`, `natural`, `plots`) and `phases/` |
-| `tests/` | 32 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, geometry, exact rotations, null samplers, statistics |
+| `tests/` | 34 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, which 4a branches add patches exactly, geometry, exact rotations, null samplers, statistics |
 | `data/circuits/` | the authors' published curve-family tuning data (CC-BY 4.0) |
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |
