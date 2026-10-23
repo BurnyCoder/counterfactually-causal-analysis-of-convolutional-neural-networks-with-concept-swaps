@@ -77,3 +77,94 @@ Run it with `uv run python main.py --phase posthoc`.
   - Result files and logs now store repo-relative paths.
   - The Imagenette archive (SHA-256) and the InceptionV1 weights (SHA-256) are verified on use.
   - The archive downloads atomically, and the validation image count is checked.
+
+## Second round: independent audit (not pre-registered)
+
+A second, independent audit re-checked the finished study from scratch. It covered the pre-registration, every
+module, the run logs, the git history and every number in the README and paper. It ran in phase `audit`:
+`uv run python main.py --phase audit` writes `results/posthoc_audit.json` (run log `logs/20261023_210800.log`).
+
+### What the audit verified, with no change needed
+- **Pre-registration integrity.**
+  - The pre-registration was committed at 17:13:04, and the only confirmatory run started at 17:13:49.
+  - Between the registered code (`de6f002`) and the results commit, the code changed only in comments and in where
+    figures are drawn. A whitespace- and comment-insensitive diff shows this.
+  - Smoke runs used seeds 101–104, except one disclosed E1-only run on seed 1.
+  - The hero-figure rule was committed at 17:20:08, before H1's first result was logged at 17:26:04.
+- **Intervention exactness.** The crop indices were re-derived by hand: 4a(6,6) ← `maxpool4` cells 4–8 ← 3b rows
+  8–18. The "all channels" set gives IIA = effect = 1.000.
+- **Statistics.** Holm-adjusted p-values were recomputed. Every README and paper number traced back to the JSONs.
+- **Relevance null.** We suspected that the variance-matched null might under-match the family, as the decile null
+  did for patching. It does not (table below).
+
+### Claims that lacked their own test, and the outcome that would overturn each (written before running)
+| Claim | Check | Overturning outcome |
+|---|---|---|
+| The family is special (beats a "data-driven" set) | Rank all 480 channels by single-channel patching effect on the **selection** split; score the top-10 and the top-10 non-family on the confirmatory pairs | Non-family top-10 effect ≥ family effect |
+| The family carries curvature (H2: 81% line → arc) | Each swap direction against its own decile-matched null (1000 sets) | Line → arc null q95 ≥ 0.807 |
+| Ablating the family disrupts orientation far more than matched channels | Mean ablation against the rank-matched null (200 sets) | Rank-null retention ≤ the family's 0.806 |
+| The rest of the code is "redundant" | Family vs complement in the ridge decoder's (cos, sin) output space | Wording only |
+
+Two more checks have no overturning rule:
+- **Cross-nuisance sham.** The source has the same orientation as the base, but another radius, width or polarity.
+- **Relevance null size check.**
+
+### Results
+| Check | Result | Overturned? |
+|---|---|---|
+| Causal ranking | The top-10 by single-channel effect is 9 family units plus channel 380. Unit 379 ranks 12th; every family unit ranks within the top 12. Scored on the confirmatory pairs, this causal top-10 reaches effect 0.420 (IIA 0.168), against the family's 0.410 (0.177). | — |
+| Best 10 non-family channels by effect | Effect 0.201, IIA 0.001. The family's margin over them is CI [0.197, 0.221]. | no |
+| H2 line → arc | Family IIA 0.807. Null mean 0.030, q95 0.114 (p = 0.001). Effect 0.418 vs null q95 0.154. | no |
+| H2 arc → line | IIA 0.003, but the effect is 0.367 vs null q95 0.130 (p = 0.001). | — |
+| Mean ablation | Base orientation retained: family 0.806; rank-matched null 0.982 (q05 0.963). | no |
+| Ridge readout | Family vs complement: (cos, sin) effect 0.573 vs 0.427; decoded-angle IIA 0.105 vs 0.019. | wording corrected |
+| Cross-nuisance sham | Base orientation retained by the family: 0.992 (radius), 0.999 (width), 0.998 (polarity). Complement: 0.927–0.975. All channels: 0.905–0.969. | — |
+| Relevance null size | Family mean variance / matched-null mean variance = 0.96. The family units sit at the 74th–94th variance percentiles. | — |
+
+Top-K channels by single-channel effect give IIA 0.485 / 0.693 / 0.809 for K = 20 / 40 / 80. By activation change
+the same K give 0.359 / 0.442 / 0.792.
+
+### Interpretation
+- **Specificity is stronger than the reports had argued.** The earlier "data-driven" comparison was the
+  observational Fisher top-10. It looks only at the window centre, so it was a weak competitor (IIA 0.028).
+  - A causal ranking nearly reproduces the published family.
+  - The best non-family set moves the curve code only half as far as the family.
+  - Channel 380, which is not one of the 10 published units, edges out unit 379. It is worth inspecting as one of
+    the additional curve features that [Gorton 2024](https://arxiv.org/abs/2406.03662) reports. We have not checked
+    this.
+- **"Specific" also holds on the concept side.** Copying the family from a same-orientation stimulus with a
+  different radius, width or polarity almost never changes the decoded orientation. The family does not inject
+  nuisance information that the readout mistakes for orientation.
+  - The "all channels" row is a different check. It measures how well the per-cell templates generalise across
+    cells (0.905–0.969).
+- **The code is shared, not redundant.**
+  - Under the 14-unit template readout, the other 470 channels transfer the orientation in 40% of pairs.
+  - Under the whole-layer ridge readout they do so in only 1.9%, and the family carries 57% of the decoded-orientation
+    shift.
+  - "Redundant" (the rest can substitute for the family) is therefore readout-dependent. The README, the reports and
+    the paper now say "shared".
+- **Additivity is largely architectural.** The family and complement effects sum to 1.000 for both readouts:
+  0.410 + 0.590, and 0.573 + 0.427. Max-pooling acts per channel, 6 of the 14 curve readout units are linear in the
+  pooled channels, and the ridge decoder is linear. The abstract and README no longer present additivity as a
+  finding about the code.
+- **H2's curvature claim survives its own null.** The binary "arc" decision is a lower bar than H1's 72-way decode.
+  The continuous effect shows that the family's curvature evidence counts in both directions.
+
+### Wording fixes with no new analysis
+- "About 80 channels are needed" now reads as "about 80 under greedy orderings", which is an upper bound on the
+  smallest sufficient set.
+- The H5 curve-absent contrast had no null, so "the family matters more when driven" was removed.
+- E1's 3a row is labelled in-sample, because the orientation convention was fitted there.
+- `families.py` no longer calls Fisher selection an upper bound.
+
+### Learnings
+- **Readout dependence.** A claim about "the rest of the network" must name its readout. The same complement swap
+  reads as "redundant" through 14 hand-picked units and as "mostly dependent on the family" through a whole-layer
+  decoder.
+- **Strength of the comparison set.** A data-driven baseline is only as strong as its selection criterion.
+  Selecting by the quantity under test (causal effect) is the competitor a specificity claim has to beat.
+- **How the checks ran.** Each check was first run as a read-only diagnostic on the selection split. The
+  overturning outcomes were then fixed in the audit plan before the confirmatory run. Selection and confirmatory
+  results agree closely, for example the complement's ridge-space effect: 0.429 vs 0.427.
+- **Reproducibility.** The audit phase uses its own fresh RNG stream. The pre-registered results and the first
+  post-hoc round stay byte-identical.

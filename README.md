@@ -48,19 +48,31 @@ every conclusion unchanged:
   orientation's (cos, sin) space it is 0.573.
 - **Blur-free natural rotations** give a larger H5 effect: 0.336 vs 0.287.
 
+A second, independent audit found no methodological error and added four more post-hoc checks, each with its
+overturning outcome written down first: a causally ranked competitor set, per-direction H2 nulls, a cross-nuisance
+sham and a rank-matched ablation null. None overturned a conclusion. The audit did correct the earlier "redundant
+code" wording, which held for only one of the two readouts (see below).
+
 **Takeaways.**
-- **The curve family is a highly specific causal mediator.**
+- **The curve family is a highly specific causal mediator,** compared with other `mixed3b` channels.
   - The best of 4000 activation-change-matched and branch-matched sets of 10 channels transfers orientation in
     only 0.13% of pairs.
   - The family moves the next layer's curve code 41% of the way to the source.
+  - Ranking all 480 channels by their own patching effect (post hoc) puts 9 of the 10 published units in the top 10.
+    The 10 best non-family channels reach only 0.201.
   - Mean-ablating the family changes Imagenette top-1 predictions on 17.2% of photos, versus 9.3% for matched
     ablations (p = 0.0099).
 - **It is not sufficient.** The pre-registered strong claim fails.
-  - The orientation code is distributed and redundant: the other 470 channels transfer it in 40% of pairs, and
-    about 80 channels are needed for IIA ≈ 0.8.
-  - Effects add roughly linearly, at about 0.04 per curve unit.
-- **The family carries curvature, not just orientation.** Inserting its arc activations into a line image makes
-  the 4a curve units read "arc" in 81% of pairs.
+  - The rest of the orientation signal is spread over many channels: greedy rankings need about 80 for IIA ≈ 0.8.
+  - Whether those channels can replace the family depends on the readout.
+    - Swapping the other 470 channels transfers the decoded orientation in 40% of pairs for the 4a curve units.
+    - For a decoder over all of `mixed4a`, it transfers it in only 1.9% of pairs. There the family carries 57% of
+      the decoded shift (post hoc).
+  - Effects add almost exactly, at about 0.04 per curve unit, largely because of the architecture: max-pooling is
+    per channel and 6 of the 14 readout units are linear in it.
+- **The family carries curvature evidence.** Inserting its arc activations into a line image makes the 4a curve
+  units read "arc" in 81% of pairs. Matched controls do so in 3% on average, and 95% of them in under 11.4%. The
+  reverse swap rarely flips "arc" to "line" (0.3%).
 
 Full write-ups:
 - [`reports/summary.md`](reports/summary.md): plain-language summary and glossary.
@@ -143,12 +155,12 @@ uv run python main.py
 
 - Requires [uv](https://docs.astral.sh/uv/) ≥ 0.8.6, the first version with `extra-build-variables`.
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
-- `pytest` runs 31 tests. It downloads `inception5h.pth` (28 MB) on first use.
+- `pytest` runs 32 tests. It downloads `inception5h.pth` (28 MB) on first use.
 - `--quick` is a smoke test of the whole pipeline, taking a few minutes plus the one-time Imagenette download. It uses separate seeds and writes to
   `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Two phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min) and `--phase export` (Hugging Face folder). Later phases read earlier
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Three phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the independent audit) and `--phase export` (Hugging Face folder). Later phases read earlier
 phases' results from `results/*.json`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
 from the full run's. They are statistically equivalent, but only the full run reproduces the reported numbers exactly. The run is configured through `.env`; see `.env.example`. A CPU run works
 with `DEVICE=cpu` but is much slower. Windows notes are in [`docs/reproducibility.md`](docs/reproducibility.md).
@@ -203,7 +215,7 @@ terminal.
 |---|---|
 | `main.py` | pipeline wrapper |
 | `src/concept_swap/` | library modules (`model`, `stimuli`, `interventions`, `readouts`, `families`, `stats`, `natural`, `plots`) and `phases/` |
-| `tests/` | 31 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, geometry, exact rotations, null samplers, statistics |
+| `tests/` | 32 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, geometry, exact rotations, null samplers, statistics |
 | `data/circuits/` | the authors' published curve-family tuning data (CC-BY 4.0) |
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |

@@ -17,7 +17,7 @@ Details live in the per-experiment reports, which this page does not repeat:
 | E1 (gate) | The published tuning replicates: 3b r = 0.969, 4a r = 0.847, with the orientation convention fitted on 3a only. |
 | E2 (test) | **H1 falsified**: IIA 0.177 [0.156, 0.199]. The family is still far above every matched null (IIA null q95 ≤ 0.001; effect 0.410 vs 0.098). |
 | E3 (generalisation) | The same pattern holds on natural backgrounds (IIA 0.190, effect 0.415). Under a natural rotation counterfactual the effect is 0.287 vs a null q95 of 0.075. Ablation changes 17.2% of top-1 predictions vs 9.3% for matched ablations. |
-| Refined hypothesis | **The curve family is a specific, partial mediator of a distributed, redundant orientation code.** Its effect is roughly additive (about 0.04 of the readout displacement per unit). It carries curvature evidence that 4a curve units use (H2: line → arc flips 81%), but the other `mixed3b` channels also carry orientation (complement IIA 0.40; about 80 channels needed for IIA ≈ 0.8). |
+| Refined hypothesis | **The curve family is a specific, partial mediator of a shared orientation code.** A causal ranking of all 480 channels picks 9 of its 10 units as the top 10. It carries 41% of the curve-unit displacement and 57% of the whole-layer decoded-orientation displacement. The rest sits in many other channels (about 80 needed for IIA ≈ 0.8). Whether they can replace the family depends on the readout: complement IIA 0.40 for the 4a curve units, 0.019 for the whole-layer ridge decoder. Effects add almost exactly (about 0.04 per unit), largely by architecture. The family carries curvature evidence that 4a curve units use (H2: line → arc flips 81%, matched-null q95 11%). |
 
 ## Overview of all pre-registered tests
 
@@ -89,7 +89,7 @@ Details live in the per-experiment reports, which this page does not repeat:
 6. **Quick-mode seeds equalled the confirmatory seeds.** We offset them by 100 before any interventional smoke test
    touched confirmatory data, and disclosed the E1 smoke run.
 7. **The pilot already showed IIA ≈ 0.16.** We did not lower the IIA threshold. The primary result is therefore
-   reported as "falsified", with the specificity and redundancy findings as pre-registered secondaries.
+   reported as "falsified", with the specificity findings as pre-registered secondaries and the complement results as descriptive references.
 8. **A dose-response plot used a categorical x-axis for K = 1, 2, 3, 5, 7, 10,** which distorts the linear trend.
    Replaced with a numeric axis; all E2/E3 figures are now drawn from JSON in the report phase.
 
@@ -103,9 +103,19 @@ Details live in the per-experiment reports, which this page does not repeat:
    - Commits on GitHub from before the scrub still contain the old absolute paths: a local username, no
      credentials.
 
+10. **A second, independent audit found no methodological error, but four claims without their own test.** The
+    claims were: "beats a data-driven set" (tested only against an observational Fisher baseline), H2's 81% (no
+    per-direction null), the 13× ablation ratio (soft decile null) and "redundant" (true for one readout only).
+    - We fixed each overturning outcome before running.
+    - None of the claims was overturned.
+    - A causal ranking of all 480 channels recovers 9 of the 10 published units.
+    - "Redundant" was replaced by "shared", because the complement transfers orientation in 40% of pairs for the
+      curve-unit readout but in 1.9% for the whole-layer readout.
+    - Details: [posthoc_robustness.md](posthoc_robustness.md#second-round-independent-audit-not-pre-registered).
+
 ### What did not work, or remains open
-- **Strict sufficiency of the 10 units.** No configuration reached IIA ≥ 0.5 short of patching more than 40
-  channels.
+- **Strict sufficiency of the 10 units.** No 10-channel set reached IIA ≥ 0.5. The top 20 channels by
+  single-channel patching effect reach 0.485 and the top 40 reach 0.693 (post-hoc audit).
 - **The family-rotation activation swap** shifts the decoded orientation in the right direction, but by only 21–39%
   of the predicted angle (k = 5 aside). This is a channel reassignment within the family, inspired by the
   concept-swap tests of Gurnee et al. 2026.
