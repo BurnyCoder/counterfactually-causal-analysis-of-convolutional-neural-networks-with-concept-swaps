@@ -1,0 +1,77 @@
+# Code architecture and data flow
+
+`main.py` is the only entry point. It loads the configuration and the model once, then calls the phases in order.
+Each phase writes `results/<phase>.json` and figures. Library modules hold no experiment logic.
+
+```mermaid
+graph TD
+  ENV[.env / .env.example] --> CFG[config.py<br/>frozen Config]
+  CFG --> MAIN[main.py]
+  MAIN --> LOG[log.py<br/>logs/&lt;timestamp&gt;.log + terminal]
+  MAIN --> MODEL[model.py<br/>Lucent InceptionV1, TF-exact LRN,<br/>capture/patch hooks, run_block, cropped readout]
+  MAIN --> E1[phases/e1_replication.py]
+  MAIN --> E2[phases/e2_synthetic.py]
+  MAIN --> E3[phases/e3_natural.py]
+  MAIN --> REP[phases/report_tables.py]
+  E1 --> STIM[stimuli.py<br/>arcs/lines, grids, minimal pairs]
+  E2 --> COMMON[phases/common.py<br/>interchange_experiment, summarize]
+  E3 --> COMMON
+  E3 --> NAT[natural.py<br/>Imagenette download, crops, rotations]
+  COMMON --> STIM
+  COMMON --> INT[interventions.py<br/>cached RF windows, batched swaps/ablations]
+  COMMON --> FAM[families.py<br/>published families, null sets, Fisher]
+  COMMON --> RO[readouts.py<br/>z-score, template/ridge decoders, effect]
+  COMMON --> ST[stats.py<br/>pigeonhole bootstrap, p-values, decision rule]
+  INT --> MODEL
+  FAM --> DATA[(data/circuits/*.json<br/>published tuning)]
+  E1 --> PLOT[plots.py]
+  E2 --> PLOT
+  E3 --> PLOT
+  REP --> PLOT
+  E1 --> R1[(results/e1_replication.json)]
+  E2 --> R2[(results/e2_synthetic.json)]
+  E3 --> R3[(results/e3_natural.json)]
+  R1 --> REP
+  R2 --> REP
+  R3 --> REP
+  REP --> MD[(reports/generated/results.md)]
+```
+
+## What happens when you run `uv run python main.py`
+
+1. **Config and logging.** `.env` is read, and the full config is logged to `logs/<timestamp>.log` and the terminal.
+2. **Model.** Lucent's InceptionV1 is loaded. The weights (`inception5h.pth`, 28 MB) are downloaded once by
+   torch.hub. Its `F.local_response_norm` calls are redirected to TF-exact constants.
+3. **E1, observational replication (about 1 minute).**
+   - Render 1152 arcs and 1152 lines from the selection split.
+   - Run them through the network and read `mixed3a`/`mixed3b` at (13,13) and `mixed4a` at (6,6).
+   - Average activation per orientation to get tuning curves.
+   - Fit one orientation convention on 3a, then correlate 3b and 4a with the published curves against a
+     label-permutation null.
+   - Compute each 3b unit's AUROC against other orientations and against lines.
+4. **E2, synthetic interventions (about 40 minutes on an RTX 5070 Laptop).**
+   - Render the selection and confirmatory splits and cache, per image, the 11×11×480 `mixed3b` window that feeds
+     `mixed4a` unit (6,6).
+   - Fit z-scores and decoder templates on the selection split.
+   - For each neuron set (the family, Fisher top-10, the complement, all channels, and thousands of null sets),
+     overwrite those channels in the base window with the source window's values.
+   - Recompute only `maxpool4 → mixed4a` on the window, then decode the orientation.
+   - Repeat the same machinery for the ridge readout, H2 (lines ↔ arcs), H4 (3a → 3b windows), the stability seeds
+     and the Lucent-LRN model.
+5. **E3, natural images (about 20 minutes).**
+   - Download Imagenette-320 once (342 MB).
+   - Composite arcs onto photo backgrounds and rerun H1.
+   - For curve-present photos, use the rotated photo as the source (H5).
+   - Mean-ablate the family over whole maps and count changes in the network's top-1 prediction.
+6. **Report.** Markdown tables (`reports/generated/results.md`) and the summary figures are produced from the
+   JSON files only.
+
+## Design choices
+
+- **Cropped-window recomputation.** Thousands of null sets × 4608 pairs would mean millions of full forward passes.
+  We re-run only the block between the patched layer and the readout, on the receptive-field window.
+  `tests/test_model.py` proves this equals the full network in float64, with a maximum difference of about 1e-14.
+- **One generic experiment function.** `interchange_experiment` serves every hypothesis. Only the splits, pairs,
+  family, readout and labels change, which keeps H1, H2, H4, H5 and the robustness runs comparable.
+- **No hand-copied numbers.** Reports quote `reports/generated/results.md`, which `report_tables.py` writes from
+  the JSONs.

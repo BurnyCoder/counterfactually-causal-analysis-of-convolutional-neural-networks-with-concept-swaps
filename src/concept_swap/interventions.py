@@ -34,11 +34,11 @@ def collect(model, X: torch.Tensor, layer: str, device: str, batch: int = 256) -
     """
     wins, outs = [], []
     for i in range(0, len(X), batch):
-        with M.capture(model, [PREV[layer]]) as a:
+        with M.capture(model, [PREV[layer]]) as a:  # record the layer feeding the readout during a normal forward pass
             model(M.preprocess(X[i:i + batch].to(device)))
-        w = M.crop_window(a[PREV[layer]], layer)
-        wins.append(w.cpu())
-        outs.append(M.readout_from_window(model, layer, w).cpu())
+        w = M.crop_window(a[PREV[layer]], layer)  # keep only the receptive-field window of the readout unit
+        wins.append(w.cpu())  # cache on CPU; moved back to the GPU per experiment
+        outs.append(M.readout_from_window(model, layer, w).cpu())  # clean readout through the same cropped path
     torch.cuda.empty_cache()  # return the full-forward activation memory; on an 8 GB WDDM GPU it otherwise pages
     return Collected(torch.cat(wins), torch.cat(outs))
 
@@ -56,18 +56,18 @@ def patched_readouts(model, layer: str, windows: torch.Tensor, base: np.ndarray,
     dev = next(model.parameters()).device
     base, src = np.array(base), np.array(src)  # writable copies (pandas .values are read-only views)
     W = windows.to(dev)  # whole split's windows on the GPU (a few hundred MB)
-    mean = None if mean is None else mean.to(dev)
-    out_idx = torch.as_tensor(out_idx, device=dev)
+    mean = None if mean is None else mean.to(dev)  # (C, w, w) replacement value for mean ablation
+    out_idx = torch.as_tensor(out_idx, device=dev)  # readout channels to keep
     results = []
-    for k, ch in enumerate(sets):
-        ch = torch.as_tensor(ch, dtype=torch.long, device=dev)
-        sch = ch if src_sets is None else torch.as_tensor(src_sets[k], dtype=torch.long, device=dev)
-        R = []
+    for k, ch in enumerate(sets):  # one neuron set at a time (family, references, thousands of null sets)
+        ch = torch.as_tensor(ch, dtype=torch.long, device=dev)  # channels to overwrite
+        sch = ch if src_sets is None else torch.as_tensor(src_sets[k], dtype=torch.long, device=dev)  # donor channels
+        R = []  # readouts of all pairs for this set, built batch by batch
         for i in range(0, len(base), batch):
             x = W[torch.as_tensor(base[i:i + batch], device=dev)]  # advanced indexing returns a copy of the base windows
             if len(ch):
                 si = torch.as_tensor(src[i:i + batch], device=dev)[:, None]  # (b, 1) broadcasts against (k,) channels
                 x[:, ch] = W[si, sch] if mode == "swap" else mean[ch]  # gather only the patched source channels
-            R.append(M.readout_from_window(model, layer, x)[:, out_idx])
-        results.append(reduce(torch.cat(R).cpu().numpy()))
-    return np.stack(results)
+            R.append(M.readout_from_window(model, layer, x)[:, out_idx])  # recompute only the readout block
+        results.append(reduce(torch.cat(R).cpu().numpy()))  # reduce to per-pair outcomes right away to save memory
+    return np.stack(results)  # (n_sets, n_pairs, ...)

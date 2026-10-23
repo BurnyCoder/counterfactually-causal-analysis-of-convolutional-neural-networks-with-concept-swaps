@@ -50,11 +50,11 @@ def stroke_mask(s: Stim, span_deg: float) -> np.ndarray:
     Line: same midpoint, tangent t = (sin, cos) perpendicular to u, same length as the arc (R * span in radians).
     """
     img = Image.new("L", (SIZE * SS, SIZE * SS), 0)  # black canvas, stroke drawn in white
-    draw = ImageDraw.Draw(img)
+    draw = ImageDraw.Draw(img)  # https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
     mx, my = (CENTER + s.dx + 0.5) * SS, (CENTER + s.dy + 0.5) * SS  # midpoint (pixel centres at +0.5)
     t = np.radians(s.theta)
-    u = np.array([np.cos(t), -np.sin(t)])
-    r, w = s.radius * SS, int(round(s.width * SS))
+    u = np.array([np.cos(t), -np.sin(t)])  # theta direction in image coordinates (y axis points down)
+    r, w = s.radius * SS, int(round(s.width * SS))  # radius and stroke width at supersampled resolution
     if s.kind == "arc":
         cx, cy = mx + r * u[0], my + r * u[1]
         mid = -(s.theta + 180)  # PIL angle of the direction from C back to M
@@ -76,8 +76,8 @@ def compose(mask: np.ndarray, polarity: int, background: np.ndarray | None = Non
 
 def render(df: pd.DataFrame, span_deg: float, backgrounds: np.ndarray | None = None) -> torch.Tensor:
     """Render every row of a stimulus table into an N x 3 x 224 x 224 float tensor in [0, 1]."""
-    out = np.empty((len(df), SIZE, SIZE, 3), np.float32)
-    for i, row in enumerate(df.itertuples(index=False)):
+    out = np.empty((len(df), SIZE, SIZE, 3), np.float32)  # preallocated HWC batch
+    for i, row in enumerate(df.itertuples(index=False)):  # one stimulus per table row
         s = Stim(row.kind, row.theta, row.radius, row.width, row.polarity, row.dy, row.dx)
         out[i] = compose(stroke_mask(s, span_deg), s.polarity, None if backgrounds is None else backgrounds[i])
     return torch.from_numpy(out).permute(0, 3, 1, 2)  # NHWC -> NCHW
@@ -89,10 +89,10 @@ def grid(cfg: Config, seed: int, kind: str = "arc") -> pd.DataFrame:
     Local: each nuisance cell (radius, width, polarity) gets one random jitter (dy, dx) shared by all its
     orientations, so stimuli within a cell differ only in theta. Different seeds = different splits.
     """
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(seed)  # the split's seed determines all jitters
     rows = []
-    for cell, (r, w, pol) in enumerate(product(cfg.radii, cfg.widths, (0, 1))):
-        dy, dx = rng.integers(-cfg.jitter_px, cfg.jitter_px + 1, size=2)
+    for cell, (r, w, pol) in enumerate(product(cfg.radii, cfg.widths, (0, 1))):  # every nuisance combination
+        dy, dx = rng.integers(-cfg.jitter_px, cfg.jitter_px + 1, size=2)  # one translation per cell, in [-J, J]
         rows += [dict(kind=kind, theta=k * 360 / cfg.n_theta, radius=r, width=w, polarity=pol, cell=cell,
                       dy=int(dy), dx=int(dx)) for k in range(cfg.n_theta)]
     return pd.DataFrame(rows)
@@ -106,10 +106,10 @@ def minimal_pairs(g: pd.DataFrame, cfg: Config, seed: int) -> pd.DataFrame:
     """
     rng = np.random.default_rng(seed + 10_000)  # decorrelated from the grid's jitter stream
     rows = []
-    for _, cell in g.groupby("cell"):
+    for _, cell in g.groupby("cell"):  # pairs never cross nuisance cells
         for b in cell.index:
-            d = circ_diff(cell.theta.values, g.theta[b])
-            cand = cell.index[np.abs(d) >= cfg.min_dtheta]
-            for s in rng.choice(cand, cfg.sources_per_base, replace=False):
+            d = circ_diff(cell.theta.values, g.theta[b])  # orientation difference to every candidate source
+            cand = cell.index[np.abs(d) >= cfg.min_dtheta]  # sources far enough from the base orientation
+            for s in rng.choice(cand, cfg.sources_per_base, replace=False):  # distinct sources per base
                 rows.append(dict(base=b, source=s, dtheta=float(circ_diff(g.theta[s], g.theta[b]))))
     return pd.DataFrame(rows)

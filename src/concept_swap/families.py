@@ -24,7 +24,8 @@ class Family:
 
 def load_family(data_dir: Path, layer: str) -> Family:
     """Read `data/circuits/curves-<layer>.json` (copied from github.com/distillpub/post--circuits-curve-detectors)."""
-    d = json.loads((data_dir / "circuits" / f"curves-{layer}.json").read_text())
+    d = json.loads((data_dir / "circuits" / f"curves-{layer}.json").read_text())  # {"layer", "neurons", "activations"}
+    # tuning rows follow the authors' neuron order; JSON keys are strings
     return Family(layer, d["neurons"], np.array([d["activations"][str(n)] for n in d["neurons"]], np.float64))
 
 
@@ -41,7 +42,8 @@ def delta_matched_sets(delta: np.ndarray, family: list[int], n_sets: int, rng: n
     edges = np.quantile(delta, np.linspace(0, 1, n_bins + 1)[1:-1])  # interior decile edges
     bins = np.digitize(delta, edges)  # bin index per channel
     need = np.bincount(bins[family], minlength=n_bins)  # family's histogram
-    pools = [np.setdiff1d(np.flatnonzero(bins == b), family) for b in range(n_bins)]
+    pools = [np.setdiff1d(np.flatnonzero(bins == b), family) for b in range(n_bins)]  # non-family channels per bin
+    # one set = for every bin, as many distinct channels from that bin's pool as the family has there
     return np.stack([np.concatenate([rng.choice(pools[b], need[b], replace=False) for b in range(n_bins) if need[b]])
                      for _ in range(n_sets)])
 
@@ -58,9 +60,9 @@ def fisher_scores(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     (https://arxiv.org/abs/2508.02513). Global context: picks the data-driven "best" orientation neurons as an
     upper-bound reference for the human (Circuits) explanation.
     """
-    mu = X.mean(0)
+    mu = X.mean(0)  # overall mean per feature
     classes = np.unique(y)
-    n = np.array([(y == k).sum() for k in classes])[:, None]
-    mus = np.stack([X[y == k].mean(0) for k in classes])
-    var = np.stack([X[y == k].var(0) for k in classes])
-    return (n * (mus - mu) ** 2).sum(0) / np.maximum((n * var).sum(0), 1e-12)
+    n = np.array([(y == k).sum() for k in classes])[:, None]  # class sizes n_k, shaped for broadcasting
+    mus = np.stack([X[y == k].mean(0) for k in classes])  # class means mu_k
+    var = np.stack([X[y == k].var(0) for k in classes])  # class variances s_k^2
+    return (n * (mus - mu) ** 2).sum(0) / np.maximum((n * var).sum(0), 1e-12)  # between / within (guard 0 variance)
