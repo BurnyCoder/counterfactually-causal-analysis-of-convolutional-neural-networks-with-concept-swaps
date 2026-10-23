@@ -81,15 +81,17 @@ def plot_null(cfg: Config, name: str, title: str, metric: str, target: dict, nul
     _save(cfg, fig, name)
 
 
-def plot_points(cfg: Config, name: str, title: str, xlabels: list, series: dict, ylabel: str, ylim=(0, 1)) -> None:
-    """Point estimates with 95% CI error bars for one or more series over categorical x (e.g. |dtheta| bins, K)."""
+def plot_points(cfg: Config, name: str, title: str, xlabels: list, series: dict, ylabel: str, ylim=(0, 1),
+                x=None, xlabel: str = "") -> None:
+    """Point estimates with 95% CI error bars for one or more series; x is categorical unless numeric `x` is given
+    (numeric x keeps unequal spacing honest, e.g. subset sizes K = 1, 2, 3, 5, 7, 10)."""
     fig, ax = plt.subplots(figsize=(6, 2.8))
-    x = np.arange(len(xlabels))
+    x = np.arange(len(xlabels)) if x is None else np.asarray(x, float)
     for k, ((lab, (y, lo, hi)), color) in enumerate(zip(series.items(), [BLUE, ORANGE, AQUA, GRAY])):
-        off = (k - (len(series) - 1) / 2) * 0.12
+        off = (k - (len(series) - 1) / 2) * 0.06 * (x.max() - x.min()) / max(len(x) - 1, 1)  # small dodge, x-scaled
         y, lo, hi = map(np.asarray, (y, lo, hi))
         ax.errorbar(x + off, y, yerr=[y - lo, hi - y], fmt="o-", color=color, ms=5, lw=1.5, capsize=2, label=lab)
-    ax.set_xticks(x, xlabels), ax.set_ylabel(ylabel), ax.set_ylim(*ylim)
+    ax.set_xticks(x, xlabels), ax.set_ylabel(ylabel), ax.set_ylim(*ylim), ax.set_xlabel(xlabel)
     if len(series) > 1:
         ax.legend(frameon=False, fontsize=8)
     ax.set_title(title, fontsize=10, loc="left")

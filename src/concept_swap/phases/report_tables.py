@@ -7,9 +7,11 @@ can be re-checked against the JSONs mechanically.
 
 import json
 
+import numpy as np
+
 from concept_swap.config import Config, ROOT
 from concept_swap.log import get_logger
-from concept_swap.plots import plot_effects
+from concept_swap.plots import plot_effects, plot_null, plot_points
 from concept_swap.stats import holm
 
 log = get_logger(__name__)
@@ -36,6 +38,75 @@ def hypothesis_rows(res: dict) -> list[str]:
                     f"| {_f(e['rate'])} {_ci(e['rate_ci'])} | {_f(e['null_q95'])} | {_f(e['margin'])} {_ci(e['margin_ci'])} | {e['p']:.2g} "
                     f"| {_f(eb['null_q95'])} | {r.get('verdict_secondary', r['verdict'])} |")
     return rows
+
+
+MACRO = {"H1": "HOne", "H1_ridge_all4a": "HRidge", "H2": "HTwo", "H4": "HFour", "composited": "HComp", "H5": "HFive",
+         "H1_seed3": "HSeedThree", "H1_seed4": "HSeedFour", "H1_lrn_lucent": "HLrn"}  # LaTeX-safe prefixes
+
+
+def latex_numbers(e1: dict, e2: dict, e3: dict, hyp: dict) -> str:
+    """`\\newcommand` definitions for every number the paper quotes (reports/generated/numbers.tex)."""
+    m = {}
+    for l, n in (("mixed3a", "ThreeA"), ("mixed3b", "ThreeB"), ("mixed4a", "FourA")):
+        m[f"EOneR{n}"], m[f"EOneNull{n}"] = _f(e1[l]["mean_r"]), _f(e1[l]["perm_null_q95"])
+    for k, p in MACRO.items():
+        if k not in hyp:
+            continue
+        h, d, e = hyp[k], hyp[k]["iia_vs_delta_matched"], hyp[k]["effect_vs_delta_matched"]
+        m |= {f"{p}IIA": _f(d["rate"]), f"{p}IIALo": _f(d["rate_ci"][0]), f"{p}IIAHi": _f(d["rate_ci"][1]), f"{p}NullQ": _f(d["null_q95"]),
+              f"{p}BranchQ": _f(h["iia_vs_branch_matched"]["null_q95"]), f"{p}P": f"{d['p']:.2g}", f"{p}Eff": _f(e["rate"]),
+              f"{p}EffLo": _f(e["rate_ci"][0]), f"{p}EffHi": _f(e["rate_ci"][1]), f"{p}EffNullQ": _f(e["null_q95"]),
+              f"{p}EffBranchQ": _f(h["effect_vs_branch_matched"]["null_q95"]), f"{p}EffMarginLo": _f(e["margin_ci"][0]),
+              f"{p}EffP": f"{e['p']:.2g}", f"{p}Compl": _f(h["iia"]["complement"]), f"{p}All": _f(h["iia"]["all"]),
+              f"{p}Fisher": _f(h["iia"]["fisher_topk"]), f"{p}Clean": _f(h["clean_acc"]), f"{p}NElig": str(h["n_eligible"]),
+              f"{p}ComplEff": _f(h["effect"]["complement"]), f"{p}Verdict": h.get("verdict_secondary", h["verdict"]),
+              f"{p}Holm": f"{h['holm_p_effect']:.2g}" if "holm_p_effect" in h else "--"}
+    h1, rel = e2["H1"], e3["relevance"]
+    m |= {"HOneCloser": _f(h1["closer_to_source"]), "HOneSham": _f(h1["sham_same_theta_base_retained"]),
+          "HOneAblFam": _f(h1["mean_ablation"]["base_retained_family"]), "HOneAblNull": _f(h1["mean_ablation"]["base_retained_delta_null_mean"]),
+          "HOneAblCompl": _f(h1["mean_ablation"]["base_retained_complement"]), "HTwoLineToArc": _f(e2["H2"]["iia_line_to_arc"]),
+          "HTwoArcToLine": _f(e2["H2"]["iia_arc_to_line"]), "HFiveNImg": str(e3["H5"]["n_images_test"]),
+          "HFiveAbsentEff": _f(e3["H5"]["curve_absent_contrast"]["effect"]), "HFiveAbsentIIA": _f(e3["H5"]["curve_absent_contrast"]["iia"]),
+          "RelFlipFam": _f(rel["flip_family"]), "RelFlipNull": _f(rel["flip_null_mean"]), "RelFlipQ": _f(rel["flip_null_q95"]),
+          "RelFlipP": f"{rel['flip_p']:.2g}", "RelKLFam": _f(rel["kl_family"], 4), "RelKLNull": _f(rel["kl_null_mean"], 4),
+          "RelKLP": f"{rel['kl_p']:.2g}", "RelN": str(rel["n_images"])}
+    words = {"1": "One", "2": "Two", "3": "Three", "5": "Five", "7": "Seven", "10": "Ten", "20": "Twenty", "40": "Forty",
+             "80": "Eighty", "160": "OneSixty"}  # digits are not allowed in LaTeX macro names
+    m |= {f"DoseEff{words[k]}": _f(v["effect_mean"]) for k, v in h1["dose_response"].items()}
+    m |= {f"DoseIIA{words[k]}": _f(v["iia_mean"]) for k, v in h1["dose_response"].items()}
+    m |= {f"TopK{words[k]}": _f(v["top_delta"]) for k, v in h1["delta_ranked"].items() if k in words}
+    m |= {f"DTheta{chr(65 + i)}": _f(v["iia"]) for i, v in enumerate(h1["dtheta_bins"].values())}  # A = 30-60 ... E = 150-180
+    rot = h1["family_rotation"]["1"]
+    m |= {"RotPredOne": f"{rot['pred_shift']:.0f}", "RotObsOne": f"{rot['obs_circ_mean']:.0f}",
+          "HFiveIIAOneEighty": _f(e3["H5"]["iia_by_angle"]["180"]), "HFiveIIAFortyFive": _f(e3["H5"]["iia_by_angle"]["45"])}
+    return "\n".join(f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in m.items()) + "\n"
+
+
+def figures(cfg: Config, e2: dict, e3: dict) -> None:
+    """All E2/E3 figures, drawn from the result JSONs (null distributions, |dtheta| bins, dose-response)."""
+    nulls = lambda h, m: {"activation-change-matched null": h[f"null_{m}"]["delta_matched"],
+                          "branch-matched null": h[f"null_{m}"]["branch_matched"], "random-10 (descriptive)": h[f"null_{m}"]["random"]}
+    refs = lambda h, m: {"Fisher top-k": h[m]["fisher_topk"], "complement": h[m]["complement"], "all channels": h[m]["all"]}
+    for key, h, name in (("H1", e2["H1"], "e2_h1"), ("H2", e2["H2"], "e2_h2"), ("H4", e2["H4"], "e2_h4"), ("H5", e3["H5"], "e3_h5")):
+        for m, metric, axis in (("iia", "IIA", "IIA (interchange intervention accuracy)"),
+                                ("effect", "effect", "normalized effect (0 = none, 1 = source)")):
+            r = h[f"{m}_vs_delta_matched"]
+            plot_null(cfg, f"{name}_{m}_null", f"{SHORT.get(key, key)}: {metric} of the curve family vs null neuron sets", axis,
+                      dict(value=r["rate"], ci=r["rate_ci"], label="curve family"), nulls(h, m), refs(h, m))
+    bins = e2["H1"]["dtheta_bins"]
+    col = lambda d, k: [v[k] for v in d.values()]
+    plot_points(cfg, "e2_h1_dtheta", "H1 by orientation difference |Δθ| (95% pigeonhole CI)", [f"{k}°" for k in bins],
+                {"curve family": (col(bins, "iia"), [v["ci"][0] for v in bins.values()], [v["ci"][1] for v in bins.values()]),
+                 "activation-change-matched null (mean)": (col(bins, "null_mean"),) * 3}, "IIA", xlabel="|Δθ| bin")
+    dr = e2["H1"]["dose_response"]
+    plot_points(cfg, "e2_h1_dose", "Dose-response over random K-subsets of the curve family (2.5–97.5% range over subsets)", list(dr),
+                {"IIA": (col(dr, "iia_mean"), [v["iia_range"][0] for v in dr.values()], [v["iia_range"][1] for v in dr.values()]),
+                 "normalized effect": (col(dr, "effect_mean"), [v["effect_range"][0] for v in dr.values()], [v["effect_range"][1] for v in dr.values()])},
+                "value", x=[int(k) for k in dr], xlabel="K (number of curve units patched)")
+    kr = e2["H1"]["delta_ranked"]
+    plot_points(cfg, "e2_h1_topk", "IIA when patching the top-K mixed3b channels by activation change", list(kr),
+                {"top-K by activation change": (col(kr, "top_delta"),) * 3, "curve family + top-(K-10)": (col(kr, "family_plus_top_delta"),) * 3},
+                "IIA", x=np.log2([int(k) for k in kr]), xlabel="K (log scale)")
 
 
 def run(cfg: Config) -> dict:
@@ -98,6 +169,7 @@ def run(cfg: Config) -> dict:
     out = ROOT / "reports" / "generated" / ("results_quick.md" if cfg.quick else "results.md")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(L) + "\n", encoding="utf-8")
+    (out.parent / ("numbers_quick.tex" if cfg.quick else "numbers.tex")).write_text(latex_numbers(e1, e2, e3, hyp), encoding="utf-8")
     rows = [dict(label=SHORT.get(k, k.replace("H1_seed", "H1, jitter seed ")), value=v["iia_vs_delta_matched"]["rate"], ci=v["iia_vs_delta_matched"]["rate_ci"],
                  null_q95=v["iia_vs_delta_matched"]["null_q95"], null_mean=v["iia_vs_delta_matched"]["null_mean"]) for k, v in hyp.items()]
     plot_effects(cfg, "summary_iia", "Interchange accuracy of the curve family vs activation-change-matched null", rows, "IIA")
@@ -106,5 +178,6 @@ def run(cfg: Config) -> dict:
             for r, k in zip(rows, hyp)]
     plot_effects(cfg, "summary_effect", "Normalized patching effect of the curve family vs activation-change-matched null", rows,
                  "normalized effect (0 = none, 1 = source)")
+    figures(cfg, e2, e3)
     log.info("wrote %s", out)
     return hyp

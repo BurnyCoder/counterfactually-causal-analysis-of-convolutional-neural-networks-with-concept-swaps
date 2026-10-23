@@ -18,7 +18,6 @@ from concept_swap import families as Fm, interventions as I, model as M, stats a
 from concept_swap.config import Config
 from concept_swap.log import get_logger
 from concept_swap.phases.common import interchange_experiment, make_split, save_json, success, summarize
-from concept_swap.plots import plot_null, plot_points
 
 log = get_logger(__name__)
 
@@ -160,26 +159,6 @@ def run(cfg: Config, model, rng: np.random.Generator, e1: dict) -> dict:
     h1["sham_same_theta_base_retained"] = sham(cfg, model, ex, test, stab)
     log.info("H1 exploratory: closer-to-source %.3f, sham base-retained %.3f, mean-ablation %s", h1["closer_to_source"],
              h1["sham_same_theta_base_retained"], h1["mean_ablation"])
-    plot_null(cfg, "e2_h1_iia_null", "H1: interchange accuracy of the 3b curve family vs null neuron sets", "IIA (4a curve-family readout)",
-              dict(value=h1["iia_vs_delta_matched"]["rate"], ci=h1["iia_vs_delta_matched"]["rate_ci"], label="curve family"),
-              {"activation-change-matched null": h1["null_iia"]["delta_matched"], "branch-matched null (5x5)": h1["null_iia"]["branch_matched"],
-               "random-10 (descriptive)": h1["null_iia"]["random"]},
-              {"Fisher top-10": h1["iia"]["fisher_topk"], "complement (470)": h1["iia"]["complement"], "all 480": h1["iia"]["all"]})
-    plot_null(cfg, "e2_h1_effect_null", "H1: normalized patching effect of the 3b curve family vs null neuron sets",
-              "normalized effect on the 4a curve-family vector (0 = none, 1 = source)",
-              dict(value=h1["effect_vs_delta_matched"]["rate"], ci=h1["effect_vs_delta_matched"]["rate_ci"], label="curve family"),
-              {"activation-change-matched null": h1["null_effect"]["delta_matched"], "branch-matched null (5x5)": h1["null_effect"]["branch_matched"],
-               "random-10 (descriptive)": h1["null_effect"]["random"]},
-              {"Fisher top-10": h1["effect"]["fisher_topk"], "complement (470)": h1["effect"]["complement"], "all 480": h1["effect"]["all"]})
-    bins = h1["dtheta_bins"]
-    plot_points(cfg, "e2_h1_dtheta", "H1 by orientation difference |Δθ| (95% pigeonhole CI)", list(bins),
-                {"curve family": ([v["iia"] for v in bins.values()], [v["ci"][0] for v in bins.values()], [v["ci"][1] for v in bins.values()]),
-                 "activation-change-matched null (mean)": ([v["null_mean"] for v in bins.values()],) * 3}, "IIA")
-    dr = h1["dose_response"]
-    plot_points(cfg, "e2_h1_dose", "Dose-response: random K-subsets of the curve family (2.5-97.5% range over subsets)", list(dr),
-                {"IIA": ([v["iia_mean"] for v in dr.values()], [v["iia_range"][0] for v in dr.values()], [v["iia_range"][1] for v in dr.values()]),
-                 "normalized effect": ([v["effect_mean"] for v in dr.values()], [v["effect_range"][0] for v in dr.values()],
-                                       [v["effect_range"][1] for v in dr.values()])}, "value")
 
     log.info("H1 secondary: ridge readout over all 508 mixed4a channels (non-circular)")
     exr = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam["mixed3b"], np.arange(508), rng,
