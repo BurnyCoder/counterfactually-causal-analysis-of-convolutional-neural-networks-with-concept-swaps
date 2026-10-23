@@ -176,3 +176,54 @@ the same K give 0.359 / 0.442 / 0.792.
   selection-split diagnostics were not saved, so the repository has no record of them.
 - **Reproducibility.** The audit phase uses its own fresh RNG stream. The pre-registered results and the first
   post-hoc round stay byte-identical.
+
+## Third round: independent audit (not pre-registered)
+
+A third audit re-derived the study from the code, the result JSONs, the logs and the pilot files, without relying on
+the earlier rounds. It found **no error that invalidates a pre-registered finding**. It re-checked:
+- the crop geometry, the hooks, the stimulus geometry and the eligibility filter;
+- the bootstrap, the permutation p-values, the Holm correction and the secondary-verdict code;
+- fidelity to the pre-registration;
+- the extreme null values (best Δ-matched null IIA 0.0013).
+
+It did find one confounded post-hoc comparison and several interpretive claims that go beyond their evidence.
+
+### Findings
+1. **H5 blur comparison is confounded with the angle set.**
+   - The exact-rotation run uses −90/90/180°. The pre-registered H5 also includes ±45°, which have the lowest IIA (0.030).
+   - On the same three angles, the original IIA is (0.077 + 0.081 + 0.140) / 3 = 0.0995, against 0.108 for the exact
+     run.
+   - PIL's `Image.rotate` already uses an exact transpose for 180° on every image. Only ±45°, and ±90° on non-square
+     images, were bilinear.
+   - So "blur-free rotations give a larger effect" was not shown. Per-angle effects were not stored.
+2. **"Additivity is largely architectural" overstates the mechanism.**
+   - Only the 6 readout units in the 1×1 branch, and 4a's pool branch, are additive by construction.
+   - The other 8 readout units are 5×5-branch units behind a ReLU bottleneck. The 3×3 and 5×5 branches hold 252 of
+     the 508 `mixed4a` channels.
+   - A linear ridge decoder on top does not make the sum structural.
+3. **The causal ranking (9 of 10 family units in the top 10) was run only for the 14-unit curve readout.**
+   - Curve Circuits describes that readout as built from 3b curves, so the ranking partly restates the weights.
+   - It was never run for the whole-layer ridge readout.
+4. **The H2 asymmetry is a decoder property.**
+   - Line → arc flips 81% of pairs and arc → line 0.3%, but the continuous effects are nearly symmetric (0.418 vs 0.367).
+   - The asymmetry therefore reflects where the correlation decoder puts its line/arc boundary.
+5. **The family-rotation circular mean is a mixture, not a uniform partial shift.**
+   - 34–74% of pairs are unchanged, and 10–50% land within 30° of the predicted shift.
+6. **E1 has no pre-registered pass threshold, and its radii were chosen on the pilot.**
+   - The radii were chosen to maximise agreement with the same published curves, so the r values are optimistic.
+   - The conclusion is robust: on the pilot, 3b r ≥ 0.93 at every radius from 20 to 80 px.
+7. **Minor issues.**
+   - "Out of sample" in the causal ranking means only another ±2 px jitter. This favours the competitor.
+   - "No 10-channel set reached IIA ≥ 0.5" means no *tested* set.
+   - The effect-based secondary criterion was specified after the pilot had shown H1 IIA ≈ 0.16. The pilot did not
+     compute the effect.
+
+### Overturning rules, committed before the checks run
+The checks run in phase `audit2` (`results/posthoc_audit2.json`, its own RNG stream). This section was committed before
+that phase first touched confirmatory data, so git timestamps the rules.
+
+| Claim | Check | Outcome that overturns or changes it |
+|---|---|---|
+| (g) The family is special under the whole-layer readout too | Rank all 480 `mixed3b` channels by single-channel effect in the ridge decoder's (cos, sin) output on the selection split; score the top-10 non-family set on the confirmatory pairs | The top-10 non-family (cos, sin) effect ≥ the family's |
+| (h) Removing interpolation blur increases the H5 effect | Family effect and IIA per angle, for the original and the exact rotations, on the same curve-present photos and the same angles (−90/90/180°); photo-cluster bootstrap CI of the difference | The CI of (exact − original) effect does not lie above 0. The claim is then replaced by the matched-angle numbers. Sanity check: the 180° effect is nearly equal in both modes |
+| (i) Additivity is largely structural | Relative non-additivity Σ‖Δ_F + Δ_C − Δ_all‖² / Σ‖Δ_all‖², per `mixed4a` branch and for the 6 1×1 and 8 5×5 readout units | Below 0.05 for the 3×3/5×5 branches or the 8 5×5 readout units. The wording then becomes "exact for the 1×1 and pool branches by construction, near-additive elsewhere empirically" |
