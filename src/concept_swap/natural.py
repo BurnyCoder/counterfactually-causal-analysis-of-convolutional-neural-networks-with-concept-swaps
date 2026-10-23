@@ -21,7 +21,7 @@ from concept_swap.stimuli import CENTER, SIZE
 
 log = get_logger(__name__)
 SHORT = 332  # resize the shorter side to 332 px so a 224 crop rotated by any angle stays inside the image (112*sqrt2 < 166)
-N_VAL = 3925  # validation images in Imagenette v2 (https://github.com/fastai/imagenette)
+N_VAL = 3925  # validation images in Imagenette v2 320px (https://www.tensorflow.org/datasets/catalog/imagenette)
 IMAGENETTE_SHA256 = "569b4497c98db6dd29f335d1f109cf315fe127053cedf69010d047f0188e158c"  # archive used for the reported run
 
 

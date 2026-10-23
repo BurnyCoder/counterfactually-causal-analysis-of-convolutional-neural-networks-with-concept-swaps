@@ -12,6 +12,7 @@
   - total: 56.5 min.
 - **Post-hoc phase** (`logs/20261023_184009.log`): 22.3 min.
 - **Audit phase** (`logs/20261023_210800.log`): 4.7 min.
+- **Audit2 phase** (`logs/20261023_230809.log`): 4.0 min.
 - **Provenance of `results/e1_replication.json`.** It was regenerated at 19:19 by a deterministic E1 rerun that adds
   the Lucent-LRN check (`logs/20261023_191858.log`). Its other numbers are identical to the confirmatory log.
 

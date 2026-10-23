@@ -37,6 +37,7 @@ graph TD
   HERO --> COMMON
   EXP --> COMMON
   E1 --> STIM[stimuli.py<br/>arcs/lines, grids, minimal pairs]
+  E1 --> COMMON
   E2 --> COMMON[phases/common.py<br/>interchange_experiment, summarize]
   E3 --> COMMON
   E3 --> NAT[natural.py<br/>Imagenette download, crops, rotations]
@@ -48,8 +49,7 @@ graph TD
   INT --> MODEL
   FAM --> DATA[(data/circuits/*.json<br/>published tuning)]
   E1 --> PLOT[plots.py]
-  E2 --> PLOT
-  E3 --> PLOT
+  HERO --> PLOT
   REP --> PLOT
   E1 --> R1[(results/e1_replication.json)]
   E2 --> R2[(results/e2_synthetic.json)]
@@ -92,8 +92,10 @@ graph TD
    - Composite arcs onto photo backgrounds and rerun H1.
    - For curve-present photos, use the rotated photo as the source (H5).
    - Mean-ablate the family over whole maps and count changes in the network's top-1 prediction.
-6. **Report.** Markdown tables (`reports/generated/results.md`) and the summary figures are produced from the
-   JSON files only.
+6. **Hero.** Re-renders the selection and confirmatory splits and draws the README example figure and GIF for the
+   pre-chosen cell (θ = 0° base, radius 45, width 3, dark-on-light).
+7. **Report.** Markdown tables (`reports/generated/results.md`), LaTeX macros, and the E2/E3 and summary figures
+   are produced from the JSON files only.
 
 ## Design choices
 
