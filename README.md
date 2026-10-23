@@ -141,7 +141,7 @@ uv run python main.py
 ```
 
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
-- `pytest` runs 30 tests. It downloads `inception5h.pth` (28 MB) on first use.
+- `pytest` runs 31 tests. It downloads `inception5h.pth` (28 MB) on first use.
 - `--quick` is a smoke test of the whole pipeline, taking a few minutes plus the one-time Imagenette download. It uses separate seeds and writes to
   `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
@@ -200,7 +200,7 @@ terminal.
 |---|---|
 | `main.py` | pipeline wrapper |
 | `src/concept_swap/` | library modules (`model`, `stimuli`, `interventions`, `readouts`, `families`, `stats`, `natural`, `plots`) and `phases/` |
-| `tests/` | 30 tests: LRN formula, block re-implementation, crop exactness, hook invariants, geometry, exact rotations, null samplers, statistics |
+| `tests/` | 31 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, geometry, exact rotations, null samplers, statistics |
 | `data/circuits/` | the authors' published curve-family tuning data (CC-BY 4.0) |
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |

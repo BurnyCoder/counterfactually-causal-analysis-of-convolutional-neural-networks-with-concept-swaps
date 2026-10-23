@@ -19,10 +19,12 @@ class ZScore:
     """Per-feature standardisation with statistics frozen on the selection split (no test-set leakage)."""
 
     def fit(self, X: np.ndarray) -> "ZScore":
+        """Store per-feature mean and std of the selection-split responses X (n, d)."""
         self.mu, self.sd = X.mean(0), X.std(0) + 1e-8  # epsilon guards never-active units
         return self
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
+        """Standardise X with the frozen selection statistics."""
         return (X - self.mu) / self.sd
 
 
@@ -34,6 +36,7 @@ class TemplateDecoder:
     """
 
     def fit(self, Z: np.ndarray, theta: np.ndarray, cell: np.ndarray) -> "TemplateDecoder":
+        """Store each cell's clean response vectors (rows of Z) as templates labelled by theta."""
         # one (templates, labels) table per nuisance cell; templates are pre-normalised for correlation
         self.t = {c: (self._center(Z[cell == c]), theta[cell == c]) for c in np.unique(cell)}
         return self
@@ -45,6 +48,7 @@ class TemplateDecoder:
         return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-12)  # unit length (epsilon avoids 0/0)
 
     def predict(self, Z: np.ndarray, cell: np.ndarray) -> np.ndarray:
+        """Label of the best-correlated template from each row's own cell."""
         out = np.full(len(Z), np.nan)  # decoded label per row (NaN until decoded)
         for c, (T, th) in self.t.items():  # decode each cell's rows against that cell's templates only
             m = cell == c
@@ -61,11 +65,13 @@ class RidgeDecoder:
     """
 
     def fit(self, X: np.ndarray, theta: np.ndarray) -> "RidgeDecoder":
+        """Fit standardisation + RidgeCV mapping features X to (cos theta, sin theta)."""
         t = np.radians(theta)  # circular target encoded as (cos, sin) so 355 deg and 5 deg are neighbours
         self.m = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 4, 15))).fit(X, np.c_[np.cos(t), np.sin(t)])
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
+        """Decoded orientation in degrees [0, 360) for every row of X."""
         cs = self.m.predict(X)  # predicted (cos, sin) per row
         return np.degrees(np.arctan2(cs[:, 1], cs[:, 0])) % 360  # back to an angle in [0, 360)
 

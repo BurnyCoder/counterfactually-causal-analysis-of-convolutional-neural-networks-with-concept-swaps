@@ -8,7 +8,7 @@ bins, dose-response, top-K by activation change, mean ablation, same-orientation
 Global context: Huang et al. 2023's intervention mode (https://arxiv.org/abs/2309.10312) for a CNN neuron family.
 """
 
-from itertools import combinations
+from itertools import combinations  # all K-subsets of the family: https://docs.python.org/3/library/itertools.html
 
 import numpy as np
 import pandas as pd
@@ -25,12 +25,12 @@ log = get_logger(__name__)
 def dtheta_bins(cfg: Config, ex: dict, rng) -> dict:
     """Family IIA per |dtheta| bin with pigeonhole 95% CIs (exploratory)."""
     e, p = ex["elig"], ex["pairs"]
-    succ = success(ex, ex["outs"]["family"])
-    null = success(ex, ex["nulls"]["delta_matched"]).mean(0)
-    edges, out = [30, 60, 90, 120, 150, 181], {}
+    succ = success(ex, ex["outs"]["family"])  # per-pair success of the family swap
+    null = success(ex, ex["nulls"]["delta_matched"]).mean(0)  # per-pair success rate averaged over null sets
+    edges, out = [30, 60, 90, 120, 150, 181], {}  # 181 so that |dtheta| = 180 falls into the last bin
     for lo, hi in zip(edges[:-1], edges[1:]):
-        m = e & (np.abs(p.dtheta.values) >= lo) & (np.abs(p.dtheta.values) < hi)
-        W = St.pigeonhole_weights(p.base.values[m], p.source.values[m], cfg.n_boot, rng)
+        m = e & (np.abs(p.dtheta.values) >= lo) & (np.abs(p.dtheta.values) < hi)  # eligible pairs in this bin
+        W = St.pigeonhole_weights(p.base.values[m], p.source.values[m], cfg.n_boot, rng)  # bin-specific bootstrap
         out[f"{lo}-{min(hi, 180)}"] = dict(iia=float(succ[m].mean()), ci=St.percentile_ci(St.weighted_rates(succ[m][None], W)[:, 0]),
                                          null_mean=float(null[m].mean()), n=int(m.sum()))
     return out
@@ -39,13 +39,13 @@ def dtheta_bins(cfg: Config, ex: dict, rng) -> dict:
 def dose_response(cfg: Config, ex: dict, n_sub: int = 100) -> dict:
     """IIA and normalized effect for random K-subsets of the family (descriptive)."""
     fam, e, k, out = ex["named"]["family"], ex["elig"], ex["elig"] & ex["keep"], {}
-    rng = np.random.default_rng(cfg.confirm_seed)
+    rng = np.random.default_rng(cfg.confirm_seed)  # own stream: subset choice does not shift the main RNG
     for K in (1, 2, 3, 5, 7, len(fam)):
-        subs = list(combinations(fam, K))
-        subs = [subs[i] for i in rng.choice(len(subs), min(n_sub, len(subs)), replace=False)]
-        o = ex["run"](subs)
-        iia = success(ex, o)[:, e].mean(1)
-        eff = o[:, k, 1].sum(1) / ex["den"][k].sum()
+        subs = list(combinations(fam, K))  # every K-subset (C(10, K) of them)
+        subs = [subs[i] for i in rng.choice(len(subs), min(n_sub, len(subs)), replace=False)]  # at most n_sub
+        o = ex["run"](subs)  # (n_subsets, n_pairs, 2)
+        iia = success(ex, o)[:, e].mean(1)  # IIA per subset
+        eff = o[:, k, 1].sum(1) / ex["den"][k].sum()  # normalized effect per subset
         out[str(K)] = dict(iia_mean=float(iia.mean()), iia_range=St.percentile_ci(iia), effect_mean=float(eff.mean()),
                            effect_range=St.percentile_ci(eff), n_subsets=len(subs))
     return out
@@ -54,11 +54,11 @@ def dose_response(cfg: Config, ex: dict, n_sub: int = 100) -> dict:
 def delta_ranked(ex: dict) -> dict:
     """Exploratory (pilot-motivated): IIA when patching the top-K channels by selection-split activation change,
     with and without forcing the family in. Measures how distributed the orientation signal is."""
-    order, fam, e = np.argsort(-ex["delta"]), list(ex["named"]["family"]), ex["elig"]
-    rest = [c for c in order if c not in fam]
+    order, fam, e = np.argsort(-ex["delta"]), list(ex["named"]["family"]), ex["elig"]  # channels by decreasing delta
+    rest = [c for c in order if c not in fam]  # non-family channels, still by decreasing delta
     out = {}
     for K in (10, 20, 40, 80, 160, 320, 480):
-        sets = [order[:K], np.array(fam + rest[:K - len(fam)])]
+        sets = [order[:K], np.array(fam + rest[:K - len(fam)])]  # top-K, and family + top-(K-10) others
         o = success(ex, ex["run"](sets))[:, e].mean(1)
         out[str(K)] = dict(top_delta=float(o[0]), family_plus_top_delta=float(o[1]))
     return out
@@ -67,13 +67,13 @@ def delta_ranked(ex: dict) -> dict:
 def mean_ablation(cfg: Config, ex: dict, sel_windows, rng) -> dict:
     """Necessity-style check: replace the family (or null sets) by its selection-split mean window and ask how often
     the decoded orientation of the base survives (exploratory)."""
-    mean = sel_windows.mean(0)
+    mean = sel_windows.mean(0)  # (C, 11, 11) mean selection window
     e = ex["elig"]
     p = ex["pairs"]
     b = p.base.values
     sets = [ex["named"]["family"], ex["named"]["complement"]] + list(Fm.delta_matched_sets(ex["delta"], list(ex["named"]["family"]), 200, rng))
-    o = ex["run"](sets, base=b, src=b, mode="mean", mean=mean)
-    keep = success(ex, o, target="base")[:, e].mean(1)
+    o = ex["run"](sets, base=b, src=b, mode="mean", mean=mean)  # no source: overwrite with the mean
+    keep = success(ex, o, target="base")[:, e].mean(1)  # fraction of pairs still decoded as the base orientation
     return dict(base_retained_family=float(keep[0]), base_retained_complement=float(keep[1]),
                 base_retained_delta_null_mean=float(keep[2:].mean()), base_retained_delta_null_q05=float(np.quantile(keep[2:], 0.05)))
 
@@ -82,15 +82,15 @@ def family_rotation(ex: dict, pref: list[float], fam: list[int]) -> dict:
     """Exploratory J-lens/SAE-style activation-space concept swap: give each curve unit the map of the unit whose
     preferred orientation is k steps further around the circle (donor = the base itself). If downstream reads the
     family as an orientation code, the decoded orientation should shift by the preferred-orientation difference."""
-    order = np.argsort(pref)
+    order = np.argsort(pref)  # family units sorted by preferred orientation
     srt, ps = np.array(fam)[order], np.array(pref)[order]
     e, p = ex["elig"], ex["pairs"]
     b = p.base.values
     out = {}
     for k in range(1, len(fam)):
-        o = ex["run"]([srt], base=b, src=b, src_sets=[np.roll(srt, -k)])[0]
-        shift_pred = float(np.degrees(np.angle(np.exp(1j * np.radians(ps - np.roll(ps, -k))).mean())))
-        shift_obs = S.circ_diff(o[e, 0], ex["clean"][b][e])
+        o = ex["run"]([srt], base=b, src=b, src_sets=[np.roll(srt, -k)])[0]  # unit i receives unit i+k's map
+        shift_pred = float(np.degrees(np.angle(np.exp(1j * np.radians(ps - np.roll(ps, -k))).mean())))  # circular mean
+        shift_obs = S.circ_diff(o[e, 0], ex["clean"][b][e])  # decoded change relative to the clean base
         out[str(k)] = dict(pred_shift=shift_pred, obs_circ_mean=float(np.degrees(np.angle(np.exp(1j * np.radians(shift_obs)).mean()))),
                            frac_within_30_of_pred=float((np.abs(S.circ_diff(shift_obs, shift_pred)) <= 30).mean()),
                            frac_unchanged=float((np.abs(shift_obs) <= 10).mean()))
@@ -101,11 +101,11 @@ def sham(cfg: Config, model, ex: dict, test, stab) -> float:
     """Same-orientation sham: source = same (cell, theta) from another jitter split; the decoded base orientation
     should survive (fraction reported)."""
     W = torch.cat([test.col.windows, stab.col.windows])  # source rows are offset by len(test)
-    n = len(test.grid)
+    n = len(test.grid)  # grids share row order, so row i + n is the same (cell, theta) with other jitter
     e = ex["elig"]
     b = ex["pairs"].base.values[e]
     rd = ex["readout"]
-    reduce = lambda Rr: rd.predict_z(rd.z(Rr), test.grid.cell.values[b])
+    reduce = lambda Rr: rd.predict_z(rd.z(Rr), test.grid.cell.values[b])  # decoded label only
     th = I.patched_readouts(model, "mixed4a", W, b, b + n, [ex["named"]["family"]], rd.out_idx, reduce)[0]
     return float((np.abs(S.circ_diff(th, ex["clean"][b])) <= cfg.tol_deg).mean())
 
@@ -115,31 +115,33 @@ def curvature(cfg: Config, model, fam3b: list[int], fam4a: np.ndarray, rng, **kw
     180 = arc (so the circular tolerance test doubles as class equality); templates compare line vs arc within the
     same (nuisance cell, theta)."""
     def split(seed):
+        """Lines then arcs of one jitter seed; 'cell' becomes (nuisance cell, theta) so templates pair line vs arc."""
         g = pd.concat([S.grid(cfg, seed, "line"), S.grid(cfg, seed, "arc")], ignore_index=True)
         g["cell"] = g.cell * 1000 + (g.theta / (360 / cfg.n_theta)).round().astype(int)  # cell x theta
         return make_split(cfg, model, "mixed4a", g)
 
     def pairs(g):
+        """Row i (line) <-> row i + n (arc with identical cell, theta and jitter), in both directions."""
         n = len(g) // 2  # first half lines, second half arcs, same row order
         return pd.DataFrame(dict(base=np.r_[np.arange(n), np.arange(n) + n], source=np.r_[np.arange(n) + n, np.arange(n)],
                                  dtheta=0.0))
 
     sel, test = split(cfg.selection_seed), split(cfg.confirm_seed)
-    lab = lambda g: np.where(g.kind.values == "arc", 180.0, 0.0)
+    lab = lambda g: np.where(g.kind.values == "arc", 180.0, 0.0)  # class label as an angle
     ex = interchange_experiment(cfg, model, "mixed4a", sel, test, pairs(test.grid), pairs(sel.grid), fam3b, fam4a, rng,
                                 cfg.n_null_sets // 2, labels_sel=lab(sel.grid), labels_test=lab(test.grid), **kw)
     out = summarize(cfg, ex, rng, "H2: curvature swap (line <-> arc), 3b curve family -> 4a curve family")
     d = ex["pairs"]
     for direction, m in (("line_to_arc", d.base.values < len(test.grid) // 2), ("arc_to_line", d.base.values >= len(test.grid) // 2)):
-        out[f"iia_{direction}"] = float(success(ex, ex["outs"]["family"])[ex["elig"] & m].mean())
+        out[f"iia_{direction}"] = float(success(ex, ex["outs"]["family"])[ex["elig"] & m].mean())  # per direction
     return out
 
 
 def run(cfg: Config, model, rng: np.random.Generator, e1: dict) -> dict:
-    """Run all E2 analyses; save `results/e2_synthetic.json` and figures."""
+    """Run all E2 analyses; save `results/e2_synthetic.json` (figures are drawn by the report phase)."""
     fam = {l: Fm.load_family(cfg.data_dir, l).neurons for l in ("mixed3a", "mixed3b", "mixed4a")}
-    fam4a = np.array(fam["mixed4a"])
-    g_sel, g_test = S.grid(cfg, cfg.selection_seed), S.grid(cfg, cfg.confirm_seed)
+    fam4a = np.array(fam["mixed4a"])  # readout channels
+    g_sel, g_test = S.grid(cfg, cfg.selection_seed), S.grid(cfg, cfg.confirm_seed)  # selection / confirmatory splits
     p_sel, p_test = S.minimal_pairs(g_sel, cfg, cfg.selection_seed), S.minimal_pairs(g_test, cfg, cfg.confirm_seed)
     sel, test = make_split(cfg, model, "mixed4a", g_sel), make_split(cfg, model, "mixed4a", g_test)
     res = {}
@@ -153,9 +155,9 @@ def run(cfg: Config, model, rng: np.random.Generator, e1: dict) -> dict:
     h1["dose_response"] = dose_response(cfg, ex)
     h1["delta_ranked"] = delta_ranked(ex)
     h1["mean_ablation"] = mean_ablation(cfg, ex, sel.col.windows, rng)
-    h1["family_rotation"] = family_rotation(ex, e1["mixed3b"]["pref_theta_ours"], fam["mixed3b"])
+    h1["family_rotation"] = family_rotation(ex, e1["mixed3b"]["pref_theta_ours"], fam["mixed3b"])  # E1's preferred thetas
     h1["delta_percentile_of_family"] = [float((ex["delta"] < ex["delta"][n]).mean()) for n in fam["mixed3b"]]
-    stab = make_split(cfg, model, "mixed4a", S.grid(cfg, cfg.stability_seeds[0]))
+    stab = make_split(cfg, model, "mixed4a", S.grid(cfg, cfg.stability_seeds[0]))  # donor split for the sham
     h1["sham_same_theta_base_retained"] = sham(cfg, model, ex, test, stab)
     log.info("H1 exploratory: closer-to-source %.3f, sham base-retained %.3f, mean-ablation %s", h1["closer_to_source"],
              h1["sham_same_theta_base_retained"], h1["mean_ablation"])
@@ -164,19 +166,19 @@ def run(cfg: Config, model, rng: np.random.Generator, e1: dict) -> dict:
     exr = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam["mixed3b"], np.arange(508), rng,
                                  cfg.n_null_sets // 4, kind="ridge")
     res["H1_ridge_all4a"] = summarize(cfg, exr, rng, "H1 (secondary): 3b curve family -> ridge over all 4a channels")
-    del exr
+    del exr  # free the per-set outcome arrays
 
     log.info("H2: curvature swap")
     res["H2"] = curvature(cfg, model, fam["mixed3b"], fam4a, rng)
 
     log.info("H4: 3a curve family -> 3b curve family (Curve Circuits claim)")
-    sel3, test3 = make_split(cfg, model, "mixed3b", g_sel), make_split(cfg, model, "mixed3b", g_test)
+    sel3, test3 = make_split(cfg, model, "mixed3b", g_sel), make_split(cfg, model, "mixed3b", g_test)  # 3a windows
     ex4 = interchange_experiment(cfg, model, "mixed3b", sel3, test3, p_test, p_sel, fam["mixed3a"], np.array(fam["mixed3b"]), rng,
                                  cfg.n_null_sets)
     res["H4"] = summarize(cfg, ex4, rng, "H4: 3a curve family -> 3b curve family")
     del ex4, sel3, test3
 
-    for seed in cfg.stability_seeds:
+    for seed in cfg.stability_seeds:  # same selection fit, new confirmatory jitter
         log.info("Stability: H1 on jitter seed %d", seed)
         g = S.grid(cfg, seed)
         exs = interchange_experiment(cfg, model, "mixed4a", sel, make_split(cfg, model, "mixed4a", g), S.minimal_pairs(g, cfg, seed),
@@ -185,7 +187,7 @@ def run(cfg: Config, model, rng: np.random.Generator, e1: dict) -> dict:
     del exs
 
     log.info("Sensitivity: H1 with Lucent's default LRN constants")
-    lucent = M.load_inceptionv1(cfg.device, "lucent")
+    lucent = M.load_inceptionv1(cfg.device, "lucent")  # same weights, non-TF LRN
     exl = interchange_experiment(cfg, lucent, "mixed4a", make_split(cfg, lucent, "mixed4a", g_sel), make_split(cfg, lucent, "mixed4a", g_test),
                                  p_test, p_sel, fam["mixed3b"], fam4a, rng, cfg.n_null_sets // 4)
     res["H1_lrn_lucent"] = summarize(cfg, exl, rng, "H1 sensitivity (Lucent default LRN)")

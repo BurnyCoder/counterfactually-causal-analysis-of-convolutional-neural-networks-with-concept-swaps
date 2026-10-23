@@ -1,0 +1,20 @@
+collect 11.718783140182495
+clean template acc 1.0 by radius {30: 1.0, 45: 1.0, 60: 1.0, 80: 1.0}
+clean ridge acc (all 508) 1.0
+pairs 4608 eligible 4608
+delta rank of family (pct) [np.float64(0.99), np.float64(0.97), np.float64(0.98), np.float64(0.99), np.float64(0.98), np.float64(0.98), np.float64(0.96), np.float64(0.98), np.float64(0.98), np.float64(0.99)]
+fisher top10 [388, 342, 340, 350, 127, 330, 367, 19, 45, 307] jaccard 0.25
+curve, all, complement, fisher IIA: [np.float64(0.162), np.float64(1.0), np.float64(0.421), np.float64(0.027)] time 0.7011058330535889
+null 200 sets time 31.397959232330322
+delta-null mean/q95 0.0 0.001 branch mean/q95 0.0 0.0
+{'rate': np.float64(0.162), 'rate_ci': (np.float64(0.141), np.float64(0.185)), 'null_mean': np.float64(0.0), 'null_q95': np.float64(0.001), 'margin': np.float64(0.161), 'margin_ci': (np.float64(0.14), np.float64(0.184)), 'p': np.float64(0.005), 'n_pairs': np.int64(4608), 'n_sets': np.int64(200)}
+dtheta bins 
+                mean  size
+dtheta                    
+(29, 60]    0.104869  1068
+(60, 90]    0.097395   883
+(90, 120]   0.242750   931
+(120, 150]  0.257743   904
+(150, 175]  0.106667   750
+(175, 180]  0.138889    72
+total 76.80826663970947

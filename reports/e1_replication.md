@@ -41,9 +41,12 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 ![E1 radial tuning](../figures/e1_radial_3b.png)
 ![E1 replication summary](../figures/e1_replication_summary.png)
 
+- **LRN sensitivity (planned):** with Lucent's default LRN constants instead of the TF-exact ones, the same
+  correlations are 0.937 (3a), 0.969 (3b) and 0.848 (4a). The LRN fix does not affect tuning-curve shape.
+
 ## Interpretation
 - The port (Lucent and TF-exact LRN), the renderer and the readout positions reproduce the published tuning closely
-  for 3a and 3b, and well for most 4a units.
+  for 3a and 3b, and well for most 4a units, with either LRN variant.
 - The observational part of the explanation (orientation tuning that tiles 360°) replicates. We therefore treat
   failures of the interventional tests (E2/E3) as properties of the network, not of the setup.
 - The LRN-sensitivity run in E2 checks that conclusions do not hinge on the LRN fix.

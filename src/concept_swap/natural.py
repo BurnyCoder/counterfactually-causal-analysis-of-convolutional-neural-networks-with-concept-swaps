@@ -73,19 +73,19 @@ def crop(path: Path, angle: float = 0.0, square: bool = False) -> np.ndarray:
     transpose instead of bilinear resampling (Image.rotate fast path), so no interpolation blur differs from the
     unrotated base. The 224 crop is identical either way for angle 0.
     """
-    im = Image.open(path).convert("RGB")
-    s = SHORT / min(im.size)
+    im = Image.open(path).convert("RGB")  # some Imagenette files are greyscale or CMYK
+    s = SHORT / min(im.size)  # scale so the shorter side becomes SHORT
     im = im.resize((round(im.width * s), round(im.height * s)), Image.Resampling.BILINEAR)
     if square:
         l, t = (im.width - SHORT) // 2, (im.height - SHORT) // 2  # central square, same centre pixel as below
         im = im.crop((l, t, l + SHORT, t + SHORT))
     if angle:
         im = im.rotate(angle, resample=Image.Resampling.BILINEAR)  # about the image centre, same canvas size
-    cx, cy = im.width // 2, im.height // 2
-    box = (cx - CENTER, cy - CENTER, cx - CENTER + SIZE, cy - CENTER + SIZE)
-    return np.asarray(im.crop(box), dtype=np.float32) / 255.0
+    cx, cy = im.width // 2, im.height // 2  # image centre (integer pixel)
+    box = (cx - CENTER, cy - CENTER, cx - CENTER + SIZE, cy - CENTER + SIZE)  # puts the centre at crop pixel (111, 111)
+    return np.asarray(im.crop(box), dtype=np.float32) / 255.0  # HWC float in [0, 1]
 
 
 def load(paths: list[Path], angle: float = 0.0) -> np.ndarray:
     """Stack crops of many images (N, 224, 224, 3)."""
-    return np.stack([crop(p, angle) for p in paths])
+    return np.stack([crop(p, angle) for p in paths])  # one centred crop per path

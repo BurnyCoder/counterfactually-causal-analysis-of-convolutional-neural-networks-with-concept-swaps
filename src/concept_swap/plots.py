@@ -25,27 +25,27 @@ plt.rcParams.update({"figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "sa
 def _save(cfg: Config, fig, name: str) -> None:
     """Write figures/<name>.png and close the figure."""
     cfg.figures_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(cfg.figures_dir / f"{name}.png", bbox_inches="tight")
-    plt.close(fig)
+    fig.savefig(cfg.figures_dir / f"{name}.png", bbox_inches="tight")  # tight: keep outside legends and titles
+    plt.close(fig)  # free memory; figures are never shown interactively
 
 
 def plot_radial_replication(cfg: Config, ours: dict, pub: dict, res: dict) -> None:
     """Small multiples of 3b radial tuning (ours vs published, each scaled to max 1) + per-layer mean r vs null."""
     fam = res["mixed3b"]["neurons"]
-    n = ours["mixed3b"].shape[1]
+    n = ours["mixed3b"].shape[1]  # orientations on the grid
     ang = np.radians(np.arange(n + 1) * 360 / n)  # closed curve
-    fig, axes = plt.subplots(2, 5, subplot_kw={"projection": "polar"}, figsize=(11, 4.8))
+    fig, axes = plt.subplots(2, 5, subplot_kw={"projection": "polar"}, figsize=(11, 4.8))  # one polar panel per unit
     for k, ax in enumerate(axes.flat):
         for curve, color, ls, lab in ((pub["mixed3b"][k], GRAY, "--", "published (Cammarata et al. 2020)"),
                                       (ours["mixed3b"][k], BLUE, "-", "ours")):
-            c = curve / max(curve.max(), 1e-9)
-            ax.plot(ang, np.r_[c, c[:1]], color=color, ls=ls, lw=1.5, label=lab)
+            c = curve / max(curve.max(), 1e-9)  # scale to max 1 (shape comparison; units differ between sources)
+            ax.plot(ang, np.r_[c, c[:1]], color=color, ls=ls, lw=1.5, label=lab)  # repeat first point to close
         ax.set_title(f"3b:{fam[k]}  r={res['mixed3b']['r'][k]:.2f}", fontsize=8, pad=8)
-        ax.set_yticklabels([]), ax.set_xticklabels([]), ax.grid(color="#e4e3df", lw=0.5)
+        ax.set_yticklabels([]), ax.set_xticklabels([]), ax.grid(color="#e4e3df", lw=0.5)  # recessive grid, no tick clutter
     axes.flat[0].legend(loc="upper left", bbox_to_anchor=(0, 1.5), fontsize=8, frameon=False, ncol=2)
     fig.suptitle("E1: radial orientation tuning of the mixed3b curve family (activation scaled to max = 1)", y=1.06)
     _save(cfg, fig, "e1_radial_3b")
-    fig, ax = plt.subplots(figsize=(5, 2.4))
+    fig, ax = plt.subplots(figsize=(5, 2.4))  # second figure: mean r per layer vs its permutation null
     layers = ["mixed3a", "mixed3b", "mixed4a"]
     for i, l in enumerate(layers):
         ax.plot([res[l]["perm_null_mean"], res[l]["perm_null_q95"]], [i, i], color=GRAY, lw=6, alpha=0.5,
@@ -61,17 +61,17 @@ def plot_null(cfg: Config, name: str, title: str, metric: str, target: dict, nul
     """Histogram of each null's per-set metric (small multiples, shared x) with the explanation's set (95% CI band)
     and descriptive reference sets marked."""
     fig, axes = plt.subplots(len(nulls), 1, figsize=(6.5, 1.9 * len(nulls)), sharex=True, squeeze=False)
-    colors = [ORANGE, AQUA, GRAY]
+    colors = [ORANGE, AQUA, GRAY]  # fixed categorical order: decile null, branch null, random
     for ax, (label, vals), color in zip(axes[:, 0], nulls.items(), colors):
-        ax.hist(vals, bins=40, color=color, alpha=0.85, edgecolor=SURFACE, linewidth=0.5)
-        ax.axvline(np.quantile(vals, 0.95), color=color, ls=":", lw=1.5)
-        ax.axvspan(*target["ci"], color=BLUE, alpha=0.15, lw=0)
-        ax.axvline(target["value"], color=BLUE, lw=2)
+        ax.hist(vals, bins=40, color=color, alpha=0.85, edgecolor=SURFACE, linewidth=0.5)  # surface-coloured gaps
+        ax.axvline(np.quantile(vals, 0.95), color=color, ls=":", lw=1.5)  # the null's q95 bar
+        ax.axvspan(*target["ci"], color=BLUE, alpha=0.15, lw=0)  # family 95% CI
+        ax.axvline(target["value"], color=BLUE, lw=2)  # family point estimate
         ax.set_ylabel("# sets"), ax.set_title(f"{label} (n={len(vals)} sets; dotted = q95)", fontsize=8, loc="left")
-    top = axes[0, 0]
+    top = axes[0, 0]  # annotations go on the first panel only
     ymax = top.get_ylim()[1]
     top.text(target["value"], ymax * 0.95, f" {target['label']}\n {target['value']:.2f}", color=INK, fontsize=8, va="top")
-    for k, (lab, v) in enumerate(refs.items()):
+    for k, (lab, v) in enumerate(refs.items()):  # reference sets as labelled markers, staggered vertically
         top.plot(v, ymax * (0.55 - 0.13 * k), "v", color=INK2, ms=6)
         top.text(v, ymax * (0.55 - 0.13 * k), f" {lab}", color=INK2, fontsize=7, va="center")
     allv = np.concatenate([np.ravel(v) for v in nulls.values()] + [np.ravel(list(refs.values())), np.ravel(target["ci"])])
@@ -90,24 +90,24 @@ def plot_points(cfg: Config, name: str, title: str, xlabels: list, series: dict,
     for k, ((lab, (y, lo, hi)), color) in enumerate(zip(series.items(), [BLUE, ORANGE, AQUA, GRAY])):
         off = (k - (len(series) - 1) / 2) * 0.06 * (x.max() - x.min()) / max(len(x) - 1, 1)  # small dodge, x-scaled
         y, lo, hi = map(np.asarray, (y, lo, hi))
-        ax.errorbar(x + off, y, yerr=[y - lo, hi - y], fmt="o-", color=color, ms=5, lw=1.5, capsize=2, label=lab)
+        ax.errorbar(x + off, y, yerr=[y - lo, hi - y], fmt="o-", color=color, ms=5, lw=1.5, capsize=2, label=lab)  # asymmetric CI
     ax.set_xticks(x, xlabels), ax.set_ylabel(ylabel), ax.set_ylim(*ylim), ax.set_xlabel(xlabel)
     if len(series) > 1:
-        ax.legend(frameon=False, fontsize=8)
+        ax.legend(frameon=False, fontsize=8)  # legend only when there is more than one series
     ax.set_title(title, fontsize=10, loc="left")
     _save(cfg, fig, name)
 
 
 def plot_effects(cfg: Config, name: str, title: str, rows: list[dict], xlabel: str) -> None:
     """One row per hypothesis: explanation's effect (blue dot + CI) vs null q95 (orange tick) and null mean (gray)."""
-    fig, ax = plt.subplots(figsize=(6.5, 0.55 * len(rows) + 1))
+    fig, ax = plt.subplots(figsize=(6.5, 0.55 * len(rows) + 1))  # height grows with the number of tests
     for i, r in enumerate(rows):
-        ax.plot(r["ci"], [i, i], color=BLUE, lw=2)
+        ax.plot(r["ci"], [i, i], color=BLUE, lw=2)  # CI as a horizontal segment
         ax.plot(r["value"], i, "o", color=BLUE, ms=7, label="curve family (95% CI)" if i == 0 else None)
         ax.plot(r["null_q95"], i, "|", color=ORANGE, ms=14, mew=2, label="null q95" if i == 0 else None)
         ax.plot(r["null_mean"], i, "|", color=GRAY, ms=10, mew=2, label="null mean" if i == 0 else None)
-    ax.set_yticks(range(len(rows)), [r["label"] for r in rows]), ax.invert_yaxis()
+    ax.set_yticks(range(len(rows)), [r["label"] for r in rows]), ax.invert_yaxis()  # first test on top
     ax.set_xlabel(xlabel), ax.set_xlim(min(0.0, ax.get_xlim()[0]), 1.0)
-    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.12 - 0.1 / len(rows) * 4), ncol=3)
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.12 - 0.1 / len(rows) * 4), ncol=3)  # below axis
     ax.set_title(title, fontsize=10, loc="left")
     _save(cfg, fig, name)
