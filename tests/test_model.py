@@ -78,6 +78,25 @@ def test_patch_hook_identity_and_full_swap(model, images):
     torch.testing.assert_close(swapped["mixed4a"], clean["mixed4a"].flip(0))
 
 
+def test_rf_locality_of_the_readout_unit(model, images):
+    """The planned locality hypothesis, as an architectural identity: overwriting mixed3b everywhere OUTSIDE the 11x11
+    window (rows/cols 8..18) leaves mixed4a unit (6,6) unchanged; overwriting only INSIDE it changes the unit.
+    Checked in float64 on the full network, so convolution-algorithm rounding cannot hide or fake an effect."""
+    m64 = copy.deepcopy(model).double()
+    x = M.preprocess(images.double())
+    inside = torch.zeros(28, 28, dtype=torch.bool, device=x.device)
+    inside[8:19, 8:19] = True  # M.crop_window(..., "mixed4a") for READOUT_POS = 6
+    noise = torch.randn(2, 480, 28, 28, dtype=torch.float64, device=x.device, generator=torch.Generator(x.device).manual_seed(1)) * 50
+    out = {}
+    for name, region in (("clean", None), ("outside", ~inside), ("inside", inside)):
+        edit = (lambda o: o) if region is None else (lambda o, r=region: torch.where(r, o + noise.abs(), o))  # positive bump keeps ReLU outputs valid
+        with torch.no_grad(), M.capture_pre_relu(m64, ["mixed4a"]) as pre, M.patch(m64, "mixed3b", edit):
+            m64(x)
+        out[name] = pre["mixed4a"][:, :, 6, 6]
+    torch.testing.assert_close(out["outside"], out["clean"], atol=1e-9, rtol=0)
+    assert (out["inside"] - out["clean"]).abs().max() > 1.0
+
+
 def test_readout_rf_center_is_near_image_center(model, device):
     """The input-gradient centre of mass of the 4a readout unit lies at pixel ~111 (8*13+7 by stride arithmetic)."""
     cy, cx = M.rf_center(model, "mixed4a", device)
