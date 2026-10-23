@@ -79,9 +79,11 @@ def mean_ablation(cfg: Config, ex: dict, sel_windows, rng) -> dict:
 
 
 def family_rotation(ex: dict, pref: list[float], fam: list[int]) -> dict:
-    """Exploratory J-lens/SAE-style activation-space concept swap: give each curve unit the map of the unit whose
-    preferred orientation is k steps further around the circle (donor = the base itself). If downstream reads the
-    family as an orientation code, the decoded orientation should shift by the preferred-orientation difference."""
+    """Exploratory activation-space swap within the family (a channel reassignment, inspired by the concept-swap tests
+    of Gurnee et al. 2026, https://transformer-circuits.pub/2026/workspace/index.html): give each curve unit the map of
+    the unit whose preferred orientation is k steps further around the circle (donor = the base itself). If downstream
+    reads the family as an orientation code, the decoded orientation should shift by the preferred-orientation
+    difference."""
     order = np.argsort(pref)  # family units sorted by preferred orientation
     srt, ps = np.array(fam)[order], np.array(pref)[order]
     e, p = ex["elig"], ex["pairs"]

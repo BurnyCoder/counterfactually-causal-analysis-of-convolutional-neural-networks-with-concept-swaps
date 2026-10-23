@@ -3,8 +3,9 @@
 Local: measures radial tuning (activation vs orientation) of the published 3a/3b/4a curve families on the selection
 split, aligns our orientation convention to the authors' with ONE global reflection+shift fitted on 3a only, then
 tests the correlation with the published curves on 3b and 4a against a neuron-label permutation null. Also reports
-orientation selectivity (AUROC) of each 3b unit vs other orientations and vs straight lines, and the planned LRN
-sensitivity (the same correlations with Lucent's default LRN constants).
+orientation selectivity (AUROC, descriptive only: it fails the extra-labels sanity check of Oikarinen et al. 2025,
+https://arxiv.org/abs/2506.05774) of each 3b unit vs other orientations and vs straight lines, and the LRN sensitivity
+(the same correlations with Lucent's default LRN constants; in the approved plan, not in the pre-registration).
 Global context: if the published tuning is not reproduced, any intervention result could be an artefact of our
 port, renderer or orientation convention; this phase is therefore the gate for E2/E3 (Huang et al.'s "observational
 mode", https://arxiv.org/abs/2309.10312).
@@ -109,7 +110,7 @@ def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     res["selectivity_3b"] = auc
     log.info("E1 3b AUROC vs other orientations: %s", [round(a["auroc_vs_other_orient"], 3) for a in auc])
     log.info("E1 3b AUROC vs straight lines:     %s", [round(a["auroc_vs_lines"], 3) for a in auc])
-    # Planned LRN sensitivity: same stimuli, same convention, Lucent's default (non-TF) LRN constants.
+    # LRN sensitivity (approved plan, not pre-registered): same stimuli and convention, Lucent's default LRN constants.
     lucent_acts = center_acts(M.load_inceptionv1(cfg.device, "lucent"), X, cfg.device, cfg.batch_size)
     res["lrn_lucent_mean_r"] = {l: float(corr_rows(to_published(tuning(lucent_acts[l][:, f.neurons], arcs.theta.values, cfg.n_theta),
                                                                 refl, shift), pub[l]).mean()) for l, f in fams.items()}

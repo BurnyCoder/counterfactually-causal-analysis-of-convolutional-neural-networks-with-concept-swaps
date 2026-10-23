@@ -28,7 +28,8 @@ def weighted_rates(values: np.ndarray, W: np.ndarray) -> np.ndarray:
 
 
 def percentile_ci(x: np.ndarray, level: float = 0.95) -> tuple[float, float]:
-    """Percentile bootstrap interval (Efron & Tibshirani 1993)."""
+    """Percentile bootstrap interval (Efron & Tibshirani 1993, An Introduction to the Bootstrap,
+    https://doi.org/10.1201/9780429246593)."""
     a = (1 - level) / 2  # e.g. 0.025 for a 95% interval
     return float(np.quantile(x, a)), float(np.quantile(x, 1 - a))  # lower and upper replicate quantiles
 

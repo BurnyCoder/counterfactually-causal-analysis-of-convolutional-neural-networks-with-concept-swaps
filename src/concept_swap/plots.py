@@ -60,10 +60,13 @@ def plot_radial_replication(cfg: Config, ours: dict, pub: dict, res: dict) -> No
 def plot_null(cfg: Config, name: str, title: str, metric: str, target: dict, nulls: dict, refs: dict) -> None:
     """Histogram of each null's per-set metric (small multiples, shared x) with the explanation's set (95% CI band)
     and descriptive reference sets marked."""
+    allv = np.concatenate([np.ravel(v) for v in nulls.values()] + [np.ravel(list(refs.values())), np.ravel(target["ci"])])
+    lo, hi = min(0.0, allv.min()) - 0.02, max(1.0, allv.max()) + 0.02  # metric lives on [0, 1] (effect may dip below 0)
+    edges = np.linspace(lo, hi, 161)  # shared bins over the axis: a null piled up near 0 still draws a visible bar
     fig, axes = plt.subplots(len(nulls), 1, figsize=(6.5, 1.9 * len(nulls)), sharex=True, squeeze=False)
     colors = [ORANGE, AQUA, GRAY]  # fixed categorical order: decile null, branch null, random
     for ax, (label, vals), color in zip(axes[:, 0], nulls.items(), colors):
-        ax.hist(vals, bins=40, color=color, alpha=0.85, edgecolor=SURFACE, linewidth=0.5)  # surface-coloured gaps
+        ax.hist(vals, bins=edges, color=color, alpha=0.85, edgecolor=SURFACE, linewidth=0.5)  # surface-coloured gaps
         ax.axvline(np.quantile(vals, 0.95), color=color, ls=":", lw=1.5)  # the null's q95 bar
         ax.axvspan(*target["ci"], color=BLUE, alpha=0.15, lw=0)  # family 95% CI
         ax.axvline(target["value"], color=BLUE, lw=2)  # family point estimate
@@ -74,8 +77,7 @@ def plot_null(cfg: Config, name: str, title: str, metric: str, target: dict, nul
     for k, (lab, v) in enumerate(refs.items()):  # reference sets as labelled markers, staggered vertically
         top.plot(v, ymax * (0.55 - 0.13 * k), "v", color=INK2, ms=6)
         top.text(v, ymax * (0.55 - 0.13 * k), f" {lab}", color=INK2, fontsize=7, va="center")
-    allv = np.concatenate([np.ravel(v) for v in nulls.values()] + [np.ravel(list(refs.values())), np.ravel(target["ci"])])
-    axes[-1, 0].set_xlim(min(0.0, allv.min()) - 0.02, max(1.0, allv.max()) + 0.02)  # metric lives on [0, 1] (effect may dip below 0)
+    axes[-1, 0].set_xlim(lo, hi)  # shared x axis = the histogram range
     axes[-1, 0].set_xlabel(metric)
     fig.suptitle(title, fontsize=10, x=0.02, ha="left")
     _save(cfg, fig, name)
