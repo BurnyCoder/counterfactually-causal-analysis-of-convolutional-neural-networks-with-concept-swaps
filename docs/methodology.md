@@ -18,10 +18,13 @@ The exact frozen protocol (thresholds, null sizes, seeds) is in `reports/preregi
 ## Why a downstream curve-family readout (and not the class logits)
 - A CNN has no output that names orientation; its 1008 class logits on a lone arc are off-distribution and not
   something the explanation makes claims about.
-- Huang et al.'s τ is "the behaviour that should change if the explanation is right". The nearest behaviour the
-  network has is the next layer's curve units. The same authors published tuning data for 14 `mixed4a` curve units;
+- Huang et al.'s τ maps a model state to an output behaviour that depends on the explained concept. The nearest such
+  behaviour the network has is the next layer's curve units. The same authors published tuning data for 14 `mixed4a` curve units;
   the article's figure labels 12.
-- **This choice is partly circular.** 4a curve units are built from 3b curves. We address that three ways:
+- **This choice is partly circular.** The 4a curve units read `mixed3b` directly and plausibly use its curves.
+  [Curve Circuits](https://distill.pub/2020/circuits/curve-circuits/) shows 3b curves feeding 4a shape detectors
+  (circles, spirals, evolutes) and notes that 4a builds its own curve detectors, "mostly in the 5x5 branch". We
+  address that three ways:
   1. A **non-circular** ridge decoder over all 508 `mixed4a` channels (H1-ridge).
   2. **Δ-matched nulls**, so any set that changes as much as the family gets the same chance.
   3. Natural-image tests (H5), plus an end-to-end prediction check (relevance).
@@ -36,7 +39,8 @@ The exact frozen protocol (thresholds, null sizes, seeds) is in `reports/preregi
 
 ## Why both IIA and a continuous effect
 - **IIA (binary)** is Huang et al.'s metric and answers "does the network now *decode* the source orientation?".
-  It is strict: the 4a readout must move all the way to the source template.
+  It is strict: the 4a readout must move far enough that the source orientation's template (within 10°) becomes the
+  best-correlated one.
 - Metric choice can change patching conclusions ([Zhang & Nanda 2024](https://arxiv.org/abs/2309.16042)).
   [Heimersheim & Nanda 2024](https://arxiv.org/abs/2404.15255) advise having at least one continuous, roughly linear
   metric. The **normalized projection effect** (0 to 1) measures

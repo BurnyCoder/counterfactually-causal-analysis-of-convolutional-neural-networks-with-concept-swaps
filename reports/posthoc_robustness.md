@@ -94,8 +94,9 @@ module, the run logs, the git history and every number in the README and paper. 
 ### What the audit verified, with no change needed
 - **Pre-registration integrity.**
   - The pre-registration was committed at 17:13:04, and the only confirmatory run started at 17:13:49.
-  - Between the registered code (`de6f002`) and the results commit, the code changed only in comments and in where
-    figures are drawn. A whitespace- and comment-insensitive diff shows this.
+  - Between the registered code (`de6f002`) and the results commit, the code changed only in comments, in where
+    figures are drawn, and by two output-only phases that touch no reported number (`hero.py` and `export_hf.py`,
+    with their `main.py` wiring). A whitespace- and comment-insensitive diff shows this.
   - Smoke runs used seeds 101–104, except one disclosed E1-only run on seed 1.
   - The hero-figure rule was committed at 17:20:08, before H1's first result was logged at 17:26:04.
 - **Intervention exactness.** The crop indices were re-derived by hand: 4a(6,6) ← `maxpool4` cells 4–8 ← 3b rows
@@ -139,11 +140,12 @@ the same K give 0.359 / 0.442 / 0.792.
   observational Fisher top-10. It looks only at the window centre, so it was a weak competitor (IIA 0.028).
   - A causal ranking nearly reproduces the published family.
   - The best non-family set moves the curve code only half as far as the family.
-  - Channel 380, which is not one of the 10 published units, edges out unit 379. It lies in the 5×5 branch, which
-    holds all 30 curve-related `mixed3b` features
-    ([Voss et al. 2021](https://distill.pub/2020/circuits/branch-specialization/)). It is worth inspecting as a
-    candidate curve-related channel; [Gorton 2024](https://arxiv.org/abs/2406.03662) found extra curve features
-    with sparse autoencoders, not as single channels. We have not checked this.
+  - Channel 380, which is not one of the 10 published curve units, edges out unit 379. It lies in the 5×5 branch,
+    which holds all 30 curve-related `mixed3b` features
+    ([Voss et al. 2021](https://distill.pub/2020/circuits/branch-specialization/)). It is a published curve-related
+    unit: Early Vision lists 3b:359, 337 and 380 as the mixed3b
+    ["Double Curves" family](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves), units that
+    respond to curves at two orientations. So the ranking's only non-family pick is a known curve unit.
 - **"Specific" also holds on the concept side.** Copying the family from a same-orientation stimulus with a
   different radius, width or polarity almost never changes the decoded orientation. The family does not inject
   nuisance information that the readout mistakes for orientation.
@@ -207,7 +209,9 @@ It did find one confounded post-hoc comparison and several interpretive claims t
      the 508 `mixed4a` channels.
    - A linear ridge decoder on top does not make the sum structural.
 3. **The causal ranking (9 of 10 family units in the top 10) was run only for the 14-unit curve readout.**
-   - Curve Circuits describes that readout as built from 3b curves, so the ranking partly restates the weights.
+   - That readout reads `mixed3b` directly and plausibly uses its curves
+     ([Curve Circuits](https://distill.pub/2020/circuits/curve-circuits/) shows 3b curves feeding 4a shape detectors),
+     so the ranking may partly restate the weights.
    - It was never run for the whole-layer ridge readout.
 4. **The H2 asymmetry is a decoder property.**
    - Line → arc flips 81% of pairs and arc → line 0.3%, but the continuous effects are nearly symmetric (0.418 vs 0.367).
@@ -238,7 +242,7 @@ Run log: `logs/20261023_230809.log`. Tables: [`generated/results.md`](generated/
 
 | Check | Result | Outcome under the rule |
 |---|---|---|
-| (g) Ridge-readout causal ranking | 8 of the top 10 channels are family units; every family unit ranks within the top 24. The family's (cos, sin) effect is 0.573 (IIA 0.105). The best 10 non-family channels reach 0.211 (IIA 0.003), and the family's margin over them is CI [0.350, 0.374]. The causal top-10 (8 family units plus channels 359 and 357) reaches 0.596 | not overturned |
+| (g) Ridge-readout causal ranking | 8 of the top 10 channels are family units; every family unit ranks within the top 24. The family's (cos, sin) effect is 0.573 (IIA 0.105). The best 10 non-family channels reach 0.211 (IIA 0.003), and the family's margin over them is CI [0.350, 0.374]. The causal top-10 (8 family units plus channels 359, a published [double-curve unit](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves), and 357) reaches 0.596 | not overturned |
 | (h) H5 blur on matched angles | Effect 0.335 with the original rotations vs 0.336 with exact transposes. The difference is 0.000, CI [−0.001, 0.001]. IIA is 0.108 in both. Per angle (original / exact effect): −90° 0.322 / 0.322, 90° 0.324 / 0.324, 180° 0.356 / 0.357 | claim withdrawn |
 | (i) Additivity | Non-additivity is 2·10⁻¹³ (1×1 branch) and 3·10⁻¹³ (pool branch), i.e. exact to fp32. It is 0.095 (3×3 branch) and 0.070 (5×5 branch). For the 14 curve readout units: 0 for the 6 1×1 units, 0.018 for the 8 5×5 units, and 0.011 overall | wording changed |
 
@@ -261,5 +265,5 @@ Run log: `logs/20261023_230809.log`. Tables: [`generated/results.md`](generated/
     (squared-norm ratio). That is a property of these stimuli, not of the architecture.
   - The unit test `test_readout_additivity_is_structural_only_for_1x1_and_pool_branches` confirms the architectural
     part: with sparse random inputs, the 3×3 and 5×5 branches are not additive.
-  - The projected effects still sum to 1.000 in every branch: the interaction is almost orthogonal to the
-    base-to-source direction.
+  - The projected effects still sum to 1 within 0.001 in every group (1.001 for the 5×5 branch and its 8 readout
+    units): the interaction is almost orthogonal to the base-to-source direction.
