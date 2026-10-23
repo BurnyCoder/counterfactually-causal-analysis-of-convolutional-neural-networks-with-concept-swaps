@@ -60,7 +60,7 @@ def load_inceptionv1(device: str = "cuda", lrn_mode: str = "tf") -> torch.nn.Mod
     """
     torch.backends.cudnn.allow_tf32 = False  # full-fp32 convolutions (TF32 would add ~1e-3 relative error)
     params = {"tf": TF_LRN, "lucent": LUCENT_LRN}[lrn_mode]  # KeyError on typos is intended
-    net = inceptionv1(pretrained=True, redirected_ReLU=False).eval().to(device)
+    net = inceptionv1(pretrained=True, redirected_ReLU=False).eval().to(device)  # eval(): no dropout
     ckpt = Path(torch.hub.get_dir()) / "checkpoints" / "inception5h.pth"  # where torch.hub cached Lucent's download
     if hashlib.sha256(ckpt.read_bytes()).hexdigest() != WEIGHTS_SHA256:  # torch.hub itself does not verify it
         raise RuntimeError(f"{ckpt.name} checksum mismatch; delete it so torch.hub re-downloads")
@@ -77,15 +77,15 @@ def preprocess(x01: torch.Tensor) -> torch.Tensor:
 
 def branch_slices(layer: str) -> dict[str, slice]:
     """Channel range of each branch inside the concatenated `layer` output, e.g. mixed3b 5x5 -> slice(320, 416)."""
-    out, start = {}, 0
-    for name, width in zip(BRANCHES, BRANCH_WIDTHS[layer]):
-        out[name], start = slice(start, start + width), start + width
+    out, start = {}, 0  # running channel offset inside the concatenation
+    for name, width in zip(BRANCHES, BRANCH_WIDTHS[layer]):  # branches in concat order
+        out[name], start = slice(start, start + width), start + width  # [start, start + width) belongs to this branch
     return out
 
 
 def branch_of(layer: str, channel: int) -> str:
     """Name of the branch that produces `channel` of `layer`."""
-    return next(b for b, s in branch_slices(layer).items() if s.start <= channel < s.stop)
+    return next(b for b, s in branch_slices(layer).items() if s.start <= channel < s.stop)  # first slice containing it
 
 
 @contextmanager
@@ -94,12 +94,13 @@ def capture(model: torch.nn.Module, names: list[str]):
 
     Uses forward hooks (https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_forward_hook).
     """
-    acts: dict[str, torch.Tensor] = {}
+    acts: dict[str, torch.Tensor] = {}  # filled by the hooks during the forward pass
+    # n=n binds the loop variable at definition time (otherwise every hook would see the last name)
     hooks = [getattr(model, n).register_forward_hook(lambda m, a, o, n=n: acts.__setitem__(n, o.detach())) for n in names]
     try:
         yield acts
     finally:
-        for h in hooks:
+        for h in hooks:  # always unhook, even if the forward pass raised
             h.remove()
 
 
@@ -110,30 +111,30 @@ def capture_pre_relu(model: torch.nn.Module, layers: list[str]):
     Local: each branch conv is hooked; the layer's CatLayer hook (which fires after all branches) concatenates them.
     Global context: the Circuits authors analyse pre-activations because "ReLU just truncates" (Curve Detectors).
     """
-    acts: dict[str, torch.Tensor] = {}
-    parts: dict[str, dict[str, torch.Tensor]] = {l: {} for l in layers}
+    acts: dict[str, torch.Tensor] = {}  # layer -> concatenated pre-ReLU output
+    parts: dict[str, dict[str, torch.Tensor]] = {l: {} for l in layers}  # layer -> branch -> pre-ReLU conv output
     hooks = []
     for l in layers:
         for b in BRANCHES:
-            conv = getattr(model, f"{l}_{b}_pre_relu_conv")
+            conv = getattr(model, f"{l}_{b}_pre_relu_conv")  # the branch's final convolution (before its ReLU)
             hooks.append(conv.register_forward_hook(lambda m, a, o, l=l, b=b: parts[l].__setitem__(b, o.detach())))
-        hooks.append(getattr(model, l).register_forward_hook(
+        hooks.append(getattr(model, l).register_forward_hook(  # CatLayer runs after all four branches
             lambda m, a, o, l=l: acts.__setitem__(l, torch.cat([parts[l][b] for b in BRANCHES], 1))))
     try:
         yield acts
     finally:
-        for h in hooks:
+        for h in hooks:  # always unhook
             h.remove()
 
 
 @contextmanager
 def patch(model: torch.nn.Module, name: str, fn):
     """Replace the output of module `name` by `fn(output)` (a forward hook that returns a value overrides the output)."""
-    h = getattr(model, name).register_forward_hook(lambda m, a, o: fn(o))
+    h = getattr(model, name).register_forward_hook(lambda m, a, o: fn(o))  # returned tensor replaces the output
     try:
         yield
     finally:
-        h.remove()
+        h.remove()  # the model is unmodified after the `with` block
 
 
 def run_block(model: torch.nn.Module, layer: str, x: torch.Tensor, pre_relu: bool = False) -> torch.Tensor:
@@ -146,12 +147,12 @@ def run_block(model: torch.nn.Module, layer: str, x: torch.Tensor, pre_relu: boo
     conv = lambda name: getattr(model, f"{layer}_{name}_pre_relu_conv")  # Lucent naming convention
     if layer == "mixed4a":  # maxpool4 between mixed3b and mixed4a
         x = F.max_pool2d(F.pad(x, (0, 1, 0, 1), value=float("-inf")), 3, stride=2)
-    b1 = conv("1x1")(x)
+    b1 = conv("1x1")(x)  # 1x1 branch: linear in x before the final ReLU
     b3 = conv("3x3")(F.pad(F.relu(conv("3x3_bottleneck")(x)), (1, 1, 1, 1)))  # 3x3 conv, zero "same" padding
     b5 = conv("5x5")(F.pad(F.relu(conv("5x5_bottleneck")(x)), (2, 2, 2, 2)))  # 5x5 conv, zero "same" padding
-    bp = conv("pool_reduce")(F.max_pool2d(F.pad(x, (1, 1, 1, 1), value=float("-inf")), 3, stride=1))
+    bp = conv("pool_reduce")(F.max_pool2d(F.pad(x, (1, 1, 1, 1), value=float("-inf")), 3, stride=1))  # pool branch
     out = torch.cat([b1, b3, b5, bp], 1)  # same concat order as Lucent's CatLayer call
-    return out if pre_relu else F.relu(out)
+    return out if pre_relu else F.relu(out)  # Lucent applies ReLU per branch; ReLU commutes with concatenation
 
 
 def crop_window(prev: torch.Tensor, layer: str) -> torch.Tensor:
@@ -160,14 +161,14 @@ def crop_window(prev: torch.Tensor, layer: str) -> torch.Tensor:
     mixed3b (from 3a): 5x5 conv radius 2 -> rows p-2..p+2. mixed4a (from 3b): the 5x5 conv sees maxpool4 cells
     p-2..p+2, and cell q pools 3b rows 2q..2q+2, so 3b rows 2p-4..2p+6 (11 rows). The readout ends up at index 2.
     """
-    p = READOUT_POS[layer]
-    lo, hi = (2 * p - 4, 2 * p + 7) if layer == "mixed4a" else (p - 2, p + 3)
-    return prev[..., lo:hi, lo:hi]
+    p = READOUT_POS[layer]  # readout row = column (square, centred receptive field)
+    lo, hi = (2 * p - 4, 2 * p + 7) if layer == "mixed4a" else (p - 2, p + 3)  # half-open row/col range
+    return prev[..., lo:hi, lo:hi]  # same rows and columns
 
 
 def readout_from_window(model: torch.nn.Module, layer: str, window: torch.Tensor) -> torch.Tensor:
     """Pre-ReLU vector (all channels) of the readout unit of `layer`, computed from a cropped input window."""
-    return run_block(model, layer, window, pre_relu=True)[:, :, 2, 2]
+    return run_block(model, layer, window, pre_relu=True)[:, :, 2, 2]  # index 2 = readout unit inside the crop
 
 
 def rf_center(model: torch.nn.Module, layer: str, device: str, n: int = 16) -> tuple[float, float]:
@@ -176,12 +177,12 @@ def rf_center(model: torch.nn.Module, layer: str, device: str, n: int = 16) -> t
     Local: averages gradient magnitude over `n` random images (gradient-based effective RF, Luo et al. 2016,
     https://arxiv.org/abs/1701.04128). Global context: stimuli are centred on this pixel.
     """
-    x = torch.rand(n, 3, 224, 224, device=device, generator=torch.Generator(device).manual_seed(0)).requires_grad_(True)
-    p, acts = READOUT_POS[layer], {}
+    x = torch.rand(n, 3, 224, 224, device=device, generator=torch.Generator(device).manual_seed(0)).requires_grad_(True)  # seeded noise
+    p, acts = READOUT_POS[layer], {}  # readout position; dict filled by the hook
     h = getattr(model, f"{layer}_1x1_pre_relu_conv").register_forward_hook(lambda m, a, o: acts.__setitem__("o", o))
     model(preprocess(x))  # forward with autograd on (hook keeps the non-detached 1x1-branch output)
-    h.remove()
+    h.remove()  # stop recording
     acts["o"][:, :, p, p].sum().backward()  # sum over images and 1x1-branch channels of the readout unit
     g = x.grad.abs().sum((0, 1))  # (224, 224) gradient magnitude
-    ys, xs = torch.meshgrid(torch.arange(224, device=device), torch.arange(224, device=device), indexing="ij")
-    return float((g * ys).sum() / g.sum()), float((g * xs).sum() / g.sum())
+    ys, xs = torch.meshgrid(torch.arange(224, device=device), torch.arange(224, device=device), indexing="ij")  # pixel coords
+    return float((g * ys).sum() / g.sum()), float((g * xs).sum() / g.sum())  # gradient-weighted mean row and column
