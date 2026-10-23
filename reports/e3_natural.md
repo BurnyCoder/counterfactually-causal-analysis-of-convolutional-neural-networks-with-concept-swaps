@@ -49,6 +49,13 @@
 
 ![H5 null distributions](../figures/e3_h5_effect_null.png)
 
+**Caveats, checked post-hoc** (see [`posthoc_robustness.md`](posthoc_robustness.md)):
+- **H5's clean accuracy (1.000) is automatic,** because each photo's own clean versions are its templates.
+- **The ±45° rotations add interpolation blur that the 0° base lacks.** Repeating H5 with blur-free rotations
+  (square crops, exact −90/90/180° transposes) *increases* the family's effect to 0.336 (null q95 0.077) and IIA to
+  0.108. Blur did not create the effect.
+- **The composited test reuses the same 32 backgrounds in both splits,** so it generalises across jitter only.
+
 ## Interpretation
 - **Composited arcs reproduce H1 almost exactly** (effect 0.415 vs 0.410; IIA 0.190 vs 0.177). Natural clutter around
   the curve does not change how much of the 4a curve code the family carries.

@@ -39,6 +39,15 @@ Holm-adjusted p ≤ 0.004.
 **Robustness.** Jitter seeds 3 and 4 give IIA 0.172 and 0.171; Lucent's default LRN gives 0.172. Every verdict is
 unchanged.
 
+**Post-hoc checks** (not pre-registered; [`reports/posthoc_robustness.md`](reports/posthoc_robustness.md)) leave
+every conclusion unchanged:
+- **A stricter rank-matched null:** the H1 effect is 0.410, against a null q95 of 0.121.
+- **The strongest competitor set** (the 10 non-family channels that change most) reaches only 0.125 and never
+  transfers the decoded orientation.
+- **The H1-ridge effect**, as pre-registered, is measured over all 508 z-scored channels. In the decoded
+  orientation's (cos, sin) space it is 0.573.
+- **Blur-free natural rotations** give a larger H5 effect: 0.336 vs 0.287.
+
 **Takeaways.**
 - **The curve family is a highly specific causal mediator.**
   - The best of 4000 activation-change-matched and branch-matched sets of 10 channels transfers orientation in
@@ -56,7 +65,7 @@ unchanged.
 Full write-ups:
 - [`reports/summary.md`](reports/summary.md): plain-language summary and glossary.
 - [`reports/all_experiments.md`](reports/all_experiments.md): story and learnings.
-- Per-experiment reports for [E1](reports/e1_replication.md), [E2](reports/e2_synthetic.md) and [E3](reports/e3_natural.md).
+- Per-experiment reports for [E1](reports/e1_replication.md), [E2](reports/e2_synthetic.md) and [E3](reports/e3_natural.md), plus the post-hoc [robustness checks](reports/posthoc_robustness.md).
 - The paper: [`reports/paper/paper.pdf`](reports/paper/paper.pdf).
 - The per-pair data: Hugging Face dataset [BurnyCoder/inceptionv1-curve-concept-swaps](https://huggingface.co/datasets/BurnyCoder/inceptionv1-curve-concept-swaps), in the collection [Counterfactual concept swaps in CNNs](https://huggingface.co/collections/BurnyCoder/counterfactual-concept-swaps-in-cnns-6adb89e08d92a1d8cb3e5583).
   Rebuild it with `uv run python main.py --phase export`, then upload `hf_export/`.
@@ -137,7 +146,7 @@ uv run python main.py
   `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Later phases read earlier
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Two phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 25 min) and `--phase export` (Hugging Face folder). Later phases read earlier
 phases' results from `results/*.json`. The run is configured through `.env`; see `.env.example`. A CPU run works
 with `DEVICE=cpu` but is much slower. Windows notes are in [`docs/reproducibility.md`](docs/reproducibility.md).
 
