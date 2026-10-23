@@ -50,7 +50,7 @@ class Config:
     tol_deg: float = 10.0  # decoder success tolerance in degrees
     n_null_sets: int = 2000  # random neuron sets per null distribution
     n_boot: int = 2000  # bootstrap replicates
-    batch_size: int = 256  # forward-pass batch size
+    batch_size: int = 64  # full-network forward batch (small: the 8 GB laptop GPU must also hold cached windows)
     imagenette_url: str = "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz"  # fast.ai mirror
     rotations: tuple[int, ...] = (-90, -45, 45, 90, 180)  # natural-image rotation angles in degrees
     quick: bool = False  # smoke-test mode: tiny grids and few null sets
@@ -61,8 +61,10 @@ class Config:
         Local: fewer orientations/radii/null sets. Global context: lets `main.py --quick` exercise the
         full pipeline end-to-end in minutes without touching the confirmatory settings.
         """
+        # Seeds are offset by 100 so smoke tests never see the confirmatory stimuli (no peeking before pre-registration).
         return replace(self, quick=True, n_theta=24, radii=self.radii[:2], widths=self.widths[:1],
-                       n_null_sets=20, n_boot=50, sources_per_base=2,
+                       n_null_sets=20, n_boot=50, sources_per_base=2, selection_seed=self.selection_seed + 100,
+                       confirm_seed=self.confirm_seed + 100, stability_seeds=tuple(s + 100 for s in self.stability_seeds),
                        results_dir=self.results_dir / "quick", figures_dir=self.figures_dir / "quick")
 
     def as_log_dict(self) -> dict:
