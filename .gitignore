@@ -26,3 +26,9 @@ reports/paper/*.out
 reports/paper/*.bbl
 reports/paper/*.blg
 reports/paper/*.toc
+
+# Smoke-test outputs and run logs (the confirmatory run's log is force-added)
+results/quick/
+figures/quick/
+reports/generated/results_quick.md
+logs/
