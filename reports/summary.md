@@ -24,7 +24,8 @@ between the images. All pass/fail rules were written down and published before r
 4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
    neurons call it a curve 81% of the time. Control groups do so 3% of the time on average.
 5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay below 0.075.
-   Switching the 10 neurons off changes the network's final answer on 17% of photos, versus 9% for control groups.
+   Replacing the 10 neurons' activity with its average changes the network's final answer on 17% of photos, versus
+   9% for control groups.
 
 **Bottom line.** "Curve detector" is a good *observational* description, and the units are *causally specific*, but
 they are one part of a shared orientation code rather than its single carrier. Details:

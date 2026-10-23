@@ -28,14 +28,16 @@ Measured in the decoder's (cos, sin) output space (post-hoc), the effect is 0.57
 
 **A stricter null, checked post-hoc.** The decile-matched null partly flatters the family, which sits at the very
 top of its decile. A rank-matched null and the top-10 non-family channels by Δ leave every conclusion unchanged:
-H1 effect 0.410 against a rank-null q95 of 0.121, and the strongest competitor set reaches only 0.125. See
+H1 effect 0.410 against a rank-null q95 of 0.121, and the 10 most-changing non-family channels reach only 0.125.
+The stronger competitor is the effect-ranked non-family set below (0.201). See
 [`posthoc_robustness.md`](posthoc_robustness.md).
 
 **Clean decoding** is near-perfect, so eligibility filtering hardly matters:
 - H1: 0.996 (4574 of 4608 pairs eligible).
 - Ridge and H2: 1.000.
 
-**Permutation p-values** are at their floor: 1/(M+1) = 0.0005 with 2000 sets and 0.002 with 500.
+**Permutation p-values** are at their floor: 1/(M+1) = 0.0005 with 2000 sets, 0.001 with 1000 (H2) and 0.002 with
+500.
 
 **Robustness**, H1 rerun with 500 null sets each:
 
@@ -92,8 +94,9 @@ Every verdict is unchanged.
   All 10 family units lie in Δ percentiles 96.5–99.4, inside the top 17 channels. The family is a better
   10-channel set than the top-10 by Δ (0.177 vs 0.103), but this ordering needs about 80 channels for IIA ≈ 0.8.
   Ranking channels by single-channel patching effect instead (post-hoc audit, below) gives IIA 0.485 / 0.693 /
-  0.809 for the top 20 / 40 / 80. So IIA ≈ 0.5 takes 20–40 channels and IIA ≈ 0.8 still about 80. Both orderings
-  are greedy, so these counts are upper bounds on the smallest sufficient set.
+  0.809 for the top 20 / 40 / 80. So IIA ≈ 0.5 takes 20–40 channels and IIA ≈ 0.8 still about 80. Both are fixed
+  rankings by a per-channel score, not a search over sets, so these counts are upper bounds on the smallest
+  sufficient set.
 - **Mean ablation of the family.** The decoded base orientation survives in 0.806 of pairs. It survives in 0.985
   under Δ-matched null ablations (q05 0.964) and in 0.553 under complement ablation. Removing the family disrupts
   orientation decoding about 13× more often than removing matched channels (19.4% vs 1.5%). Against the stricter

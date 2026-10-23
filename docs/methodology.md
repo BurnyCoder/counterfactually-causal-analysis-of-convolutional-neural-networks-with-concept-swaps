@@ -19,7 +19,8 @@ The exact frozen protocol (thresholds, null sizes, seeds) is in `reports/preregi
 - A CNN has no output that names orientation; its 1008 class logits on a lone arc are off-distribution and not
   something the explanation makes claims about.
 - Huang et al.'s τ is "the behaviour that should change if the explanation is right". The nearest behaviour the
-  network has is the next layer's curve units, which the same authors list (`mixed4a`, 14 units).
+  network has is the next layer's curve units. The same authors published tuning data for 14 `mixed4a` curve units;
+  the article's figure labels 12.
 - **This choice is partly circular.** 4a curve units are built from 3b curves. We address that three ways:
   1. A **non-circular** ridge decoder over all 508 `mixed4a` channels (H1-ridge).
   2. **Δ-matched nulls**, so any set that changes as much as the family gets the same chance.

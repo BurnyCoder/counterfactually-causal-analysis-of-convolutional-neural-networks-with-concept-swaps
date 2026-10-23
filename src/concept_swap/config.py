@@ -37,7 +37,7 @@ class Config:
     log_dir: Path = ROOT / "logs"  # timestamped run logs
     lrn_mode: str = "tf"  # "tf" (TensorFlow-exact LRN) or "lucent" (library default)
     n_theta: int = 72  # orientations sampled over 360 deg
-    radii: tuple[int, ...] = (30, 45, 60, 80)  # arc radii in pixels (pilot: where 3b and 4a match published tuning best)
+    radii: tuple[int, ...] = (30, 45, 60, 80)  # arc radii in pixels (pilot: 3b r 0.93-0.97, 4a r 0.76-0.85 vs published)
     widths: tuple[int, ...] = (3, 5)  # stroke widths in pixels
     arc_span_deg: float = 120.0  # angular extent of each arc (< 180 deg)
     jitter_px: int = 2  # max random translation of a stimulus
