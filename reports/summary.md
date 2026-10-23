@@ -1,6 +1,31 @@
 # Summary of all experiments (plain-language)
 
-<!-- RESULTS-SUMMARY -->
+**What we asked.** InceptionV1, an image classifier, has 10 neurons in layer `mixed3b` that researchers identified
+as "curve detectors". Each fires for curves bent in one direction. We asked whether the rest of the network
+*uses* these neurons to know which way a curve bends, or whether they merely light up when curves are present.
+
+**How.** We showed the network two images that are identical except for the curve's direction. Then we transplanted
+only those 10 neurons' activity from the second image into the first, and checked what the next layer's curve
+neurons "see". As a control we transplanted thousands of other 10-neuron groups chosen to change just as much
+between the images. All pass/fail rules were written down and published before running the experiment.
+
+**What we found.**
+1. **The observation replicates.** Our setup reproduces the original authors' tuning curves almost exactly
+   (correlation 0.97).
+2. **The 10 neurons are special.** Transplanting them moves the next layer's curve code about 41% of the way to the
+   other image. 95% of the control groups of 10 neurons stay below 10%.
+3. **They are not enough on their own.** The next layer actually switches to the transplanted direction in only
+   about 18% of cases, so our pre-registered "strong" hypothesis (at least 50%) is **falsified**. The direction
+   information is spread over many more neurons: the other 470 neurons carry most of it, and about 80 neurons are
+   needed for reliable transfer.
+4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
+   neurons call it a curve 81% of the time.
+5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay below 0.075.
+   Switching the 10 neurons off changes the network's final answer on 17% of photos, versus 9% for control groups.
+
+**Bottom line.** "Curve detector" is a good *observational* description, and the units are *causally specific*, but
+they are one part of a distributed, redundant orientation code rather than its single carrier. Details:
+[all experiments](all_experiments.md).
 
 ## Key terms
 
