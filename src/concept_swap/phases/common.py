@@ -38,8 +38,8 @@ def save_json(cfg: Config, name: str, obj: dict) -> None:
     """Write results/<name>.json with the run config and a timestamp attached."""
     cfg.results_dir.mkdir(parents=True, exist_ok=True)
     payload = dict(created=datetime.now().isoformat(timespec="seconds"), config=cfg.as_log_dict(), results=_jsonable(obj))
-    (cfg.results_dir / f"{name}.json").write_text(json.dumps(payload, indent=1))
-    log.info("saved %s", cfg.results_dir / f"{name}.json")
+    (cfg.results_dir / f"{name}.json").write_text(json.dumps(payload, indent=1), encoding="utf-8", newline="\n")
+    log.info("saved %s/%s.json", cfg.as_log_dict()["results_dir"], name)
 
 
 @dataclass
@@ -98,13 +98,15 @@ class Readout:
 def interchange_experiment(cfg: Config, model, layer: str, sel: Split, test: Split, pairs: pd.DataFrame,
                            sel_pairs: pd.DataFrame, family: list[int], out_idx: np.ndarray, rng: np.random.Generator,
                            n_sets: int, kind: str = "template", labels_sel: np.ndarray | None = None,
-                           labels_test: np.ndarray | None = None, readout: "Readout | None" = None) -> dict:
+                           labels_test: np.ndarray | None = None, readout: "Readout | None" = None,
+                           null_kinds: tuple = ("delta_matched", "branch_matched", "random")) -> dict:
     """Patch the explanation's set, reference sets and null sets from source into base; return per-pair outcomes.
 
     Outcome per pair and set: [decoded label of the patched base, projection numerator <zp - zb, zs - zb>].
     Success (computed in `summarize`) = decoded label within tol of decode(clean source): Huang et al.'s
     tau(M_{a<-z}(b)) = tau(M(s)). Eligible pairs: clean base and clean source both decode correctly.
-    Nulls: activation-change-matched and branch-matched (n_sets each) and random (descriptive, n_sets // 4).
+    Nulls (`null_kinds`): activation-change-matched and branch-matched (n_sets each), random (descriptive, n_sets // 4),
+    and the post-hoc rank-matched null; the post-hoc `top_delta_nonfamily` reference set is always evaluated.
     """
     lab_sel = sel.grid.theta.values if labels_sel is None else labels_sel
     lab = test.grid.theta.values if labels_test is None else labels_test
@@ -127,10 +129,13 @@ def interchange_experiment(cfg: Config, model, layer: str, sel: Split, test: Spl
     n_in, mid = sel.col.windows.shape[1], sel.col.windows.shape[-1] // 2
     others = np.setdiff1d(np.arange(n_in), family)
     fisher = np.argsort(-Fm.fisher_scores(sel.col.windows[:, :, mid, mid].numpy(), lab_sel))[:len(family)]
-    named = {"family": np.array(family), "fisher_topk": fisher, "complement": others, "all": np.arange(n_in)}
-    null_sets = {"delta_matched": Fm.delta_matched_sets(delta, family, n_sets, rng),
-                 "branch_matched": Fm.pool_sets(branch_pool(I.PREV[layer], family), len(family), n_sets, rng),
-                 "random": Fm.pool_sets(others, len(family), max(n_sets // 4, 20), rng)}
+    named = {"family": np.array(family), "fisher_topk": fisher, "complement": others, "all": np.arange(n_in),
+             "top_delta_nonfamily": Fm.top_nonfamily(delta, family, len(family))}
+    samplers = {"delta_matched": lambda: Fm.delta_matched_sets(delta, family, n_sets, rng),  # drawn lazily, in this order
+                "branch_matched": lambda: Fm.pool_sets(branch_pool(I.PREV[layer], family), len(family), n_sets, rng),
+                "random": lambda: Fm.pool_sets(others, len(family), max(n_sets // 4, 20), rng),
+                "rank_matched": lambda: Fm.rank_matched_sets(delta, family, n_sets, rng)}
+    null_sets = {k: samplers[k]() for k in null_kinds}
     outs = dict(zip(named, run(named.values())))
     nulls = {k: run(v) for k, v in null_sets.items()}
     elig = acc[b] & acc[s]
@@ -167,13 +172,15 @@ def summarize(cfg: Config, ex: dict, rng: np.random.Generator, label: str) -> di
                                         null_q95=float(np.quantile(eff[1:], 0.95)), margin=float(eff[0] - np.quantile(eff[1:], 0.95)),
                                         margin_ci=St.percentile_ci(eff_b[:, 0] - np.quantile(eff_b[:, 1:], 0.95, axis=1)),
                                         p=St.perm_p(eff[0], eff[1:]), n_pairs=int(k.sum()), n_sets=int(len(nv)))
-    d, br = out["iia_vs_delta_matched"], out["iia_vs_branch_matched"]
-    out["verdict"] = St.decide(d["rate"], d["null_q95"], d["margin_ci"], br["margin_ci"], **RULE)
+    first = next(iter(ex["nulls"]))  # primary null of this run (delta_matched in the pre-registered runs)
+    d, br = out[f"iia_vs_{first}"], out.get("iia_vs_branch_matched", out[f"iia_vs_{first}"])
+    out["verdict"] = St.decide(d["rate"], d["null_q95"], d["margin_ci"], br["margin_ci"], **RULE)  # three-way H1 rule
     out["null_iia"] = {n: success(ex, v)[:, e].mean(1).tolist() for n, v in ex["nulls"].items()}
     out["null_effect"] = {n: (v[:, k, 1].sum(1) / den_k.sum()).tolist() for n, v in ex["nulls"].items()}
-    log.info("%s: IIA family %.3f [%.3f, %.3f] | delta-null q95 %.3f (p=%.2g) | branch-null q95 %.3f (p=%.2g) | "
-             "Fisher %.3f, complement %.3f, all %.3f | effect family %.3f vs delta-null q95 %.3f | verdict: %s",
-             label, d["rate"], *d["rate_ci"], d["null_q95"], d["p"], br["null_q95"], br["p"], out["iia"]["fisher_topk"],
-             out["iia"]["complement"], out["iia"]["all"], out["effect"]["family"], out["effect_vs_delta_matched"]["null_q95"],
-             out["verdict"])
+    log.info("%s: IIA family %.3f [%.3f, %.3f] | %s-null q95 %.3f (p=%.2g) | other nulls q95 %s | "
+             "Fisher %.3f, complement %.3f, all %.3f, top-delta non-family %.3f | effect family %.3f vs %s-null q95 %.3f | verdict: %s",
+             label, d["rate"], *d["rate_ci"], first, d["null_q95"], d["p"],
+             {k[7:]: round(v["null_q95"], 3) for k, v in out.items() if k.startswith("iia_vs_") and k != f"iia_vs_{first}"}, out["iia"]["fisher_topk"],
+             out["iia"]["complement"], out["iia"]["all"], out["iia"]["top_delta_nonfamily"], out["effect"]["family"], first,
+             out[f"effect_vs_{first}"]["null_q95"], out["verdict"])
     return out

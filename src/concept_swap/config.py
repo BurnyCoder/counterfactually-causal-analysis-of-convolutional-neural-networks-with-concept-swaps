@@ -68,8 +68,10 @@ class Config:
                        results_dir=self.results_dir / "quick", figures_dir=self.figures_dir / "quick")
 
     def as_log_dict(self) -> dict:
-        """Config as a JSON-serialisable dict (Paths become strings) for logs and result files."""
-        return {k: str(v) if isinstance(v, Path) else v for k, v in asdict(self).items()}
+        """Config as a JSON-serialisable dict for logs and result files. Paths are stored relative to the repo root,
+        so results never leak the local username or directory layout."""
+        rel = lambda p: p.relative_to(ROOT).as_posix() if p.is_relative_to(ROOT) else p.name
+        return {k: rel(v) if isinstance(v, Path) else v for k, v in asdict(self).items()}
 
 
 def load_config(env_file: Path | None = None) -> Config:

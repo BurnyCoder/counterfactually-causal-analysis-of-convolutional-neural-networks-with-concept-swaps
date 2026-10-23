@@ -2,10 +2,10 @@
  "created": "2026-10-23T17:54:38",
  "config": {
   "device": "cuda",
-  "data_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\data",
-  "results_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\results",
-  "figures_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\figures",
-  "log_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\logs",
+  "data_dir": "data",
+  "results_dir": "results",
+  "figures_dir": "figures",
+  "log_dir": "logs",
   "lrn_mode": "tf",
   "n_theta": 72,
   "radii": [

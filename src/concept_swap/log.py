@@ -28,7 +28,7 @@ def setup_logging(log_dir: Path, level: int = logging.INFO) -> Path:
     for h in (logging.StreamHandler(sys.stdout), logging.FileHandler(path, encoding="utf-8")):
         h.setFormatter(logging.Formatter(FMT))  # same format on screen and in the file
         root.addHandler(h)
-    return path
+    return path  # callers log only path.name, so logs carry no absolute (user-identifying) paths
 
 
 def get_logger(name: str) -> logging.Logger:

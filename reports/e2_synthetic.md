@@ -22,6 +22,15 @@ Numbers come from `results/e2_synthetic.json` and are tabulated in
 
 Secondary verdicts after Holm correction are in `generated/results.md`.
 
+**Caveat on H1-ridge.** As pre-registered, its effect is the projection over all 508 z-scored `mixed4a` channels.
+"Supported" therefore means the whole layer moves toward the source, not that the decoded orientation does.
+Measured in the decoder's (cos, sin) output space (post-hoc), the effect is 0.573 against a null q95 of 0.126.
+
+**A stricter null, checked post-hoc.** The decile-matched null partly flatters the family, which sits at the very
+top of its decile. A rank-matched null and the top-10 non-family channels by Δ leave every conclusion unchanged:
+H1 effect 0.410 against a rank-null q95 of 0.121, and the strongest competitor set reaches only 0.125. See
+[`posthoc_robustness.md`](posthoc_robustness.md).
+
 **Clean decoding** is near-perfect, so eligibility filtering hardly matters:
 - H1: 0.996 (4574 of 4608 pairs eligible).
 - Ridge and H2: 1.000.

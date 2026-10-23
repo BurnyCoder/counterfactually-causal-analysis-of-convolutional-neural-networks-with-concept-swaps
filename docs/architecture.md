@@ -58,7 +58,7 @@ graph TD
    - Recompute only `maxpool4 → mixed4a` on the window, then decode the orientation.
    - Repeat the same machinery for the ridge readout, H2 (lines ↔ arcs), H4 (3a → 3b windows), the stability seeds
      and the Lucent-LRN model.
-5. **E3, natural images (about 20 minutes).**
+5. **E3, natural images (about 16 minutes).**
    - Download Imagenette-320 once (342 MB).
    - Composite arcs onto photo backgrounds and rerun H1.
    - For curve-present photos, use the rotated photo as the source (H5).

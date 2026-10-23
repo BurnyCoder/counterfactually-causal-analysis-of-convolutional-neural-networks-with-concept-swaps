@@ -110,7 +110,7 @@ def sham(cfg: Config, model, ex: dict, test, stab) -> float:
     return float((np.abs(S.circ_diff(th, ex["clean"][b])) <= cfg.tol_deg).mean())
 
 
-def curvature(cfg: Config, model, fam3b: list[int], fam4a: np.ndarray, rng) -> dict:
+def curvature(cfg: Config, model, fam3b: list[int], fam4a: np.ndarray, rng, **kw) -> dict:
     """H2: base = straight line, source = arc with the same midpoint tangent (and the reverse). Label 0 = line,
     180 = arc (so the circular tolerance test doubles as class equality); templates compare line vs arc within the
     same (nuisance cell, theta)."""
@@ -127,7 +127,7 @@ def curvature(cfg: Config, model, fam3b: list[int], fam4a: np.ndarray, rng) -> d
     sel, test = split(cfg.selection_seed), split(cfg.confirm_seed)
     lab = lambda g: np.where(g.kind.values == "arc", 180.0, 0.0)
     ex = interchange_experiment(cfg, model, "mixed4a", sel, test, pairs(test.grid), pairs(sel.grid), fam3b, fam4a, rng,
-                                cfg.n_null_sets // 2, labels_sel=lab(sel.grid), labels_test=lab(test.grid))
+                                cfg.n_null_sets // 2, labels_sel=lab(sel.grid), labels_test=lab(test.grid), **kw)
     out = summarize(cfg, ex, rng, "H2: curvature swap (line <-> arc), 3b curve family -> 4a curve family")
     d = ex["pairs"]
     for direction, m in (("line_to_arc", d.base.values < len(test.grid) // 2), ("arc_to_line", d.base.values >= len(test.grid) // 2)):

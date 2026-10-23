@@ -35,6 +35,13 @@ Details live in the per-experiment reports, which this page does not repeat:
 "Supported" for a secondary hypothesis means the effect margin over the activation-change-matched null q95 has a
 95% CI above 0 and a Holm-adjusted p < 0.05. All Holm-adjusted p ≤ 0.004.
 
+**Post-hoc robustness** (added after an independent code review; [details](posthoc_robustness.md)):
+- A stricter rank-matched null and the strongest competitor set (top-10 non-family channels by activation change)
+  leave every conclusion unchanged.
+- The H1 effect is 0.410, against a rank-null q95 of 0.121; the competitor set reaches only 0.125.
+- The ridge readout's decoded orientation moves 57% of the way to the source.
+- Blur-free H5 rotations give a *larger* effect: 0.336 vs 0.287.
+
 ![summary of effects](../figures/summary_effect.png)
 
 ## Learnings: what we tried, what went wrong, and why we chose what we did
@@ -79,6 +86,16 @@ Details live in the per-experiment reports, which this page does not repeat:
    reported as "falsified", with the specificity and redundancy findings as pre-registered secondaries.
 8. **A dose-response plot used a categorical x-axis for K = 1, 2, 3, 5, 7, 10,** which distorts the linear trend.
    Replaced with a numeric axis; all E2/E3 figures are now drawn from JSON in the report phase.
+
+9. **The independent code review found no result-changing bug, but did find weak spots.** The decile-matched null
+   is soft at the extreme tail; the H1-ridge effect lives in z-space; H5's ±45° rotations add blur; the bootstrap
+   is somewhat narrow; and absolute local paths had leaked into the results.
+   - The first three were checked with post-hoc analyses, and the conclusions are unchanged.
+   - The bootstrap issue is documented as a limitation.
+   - The paths were scrubbed, and the code now writes repo-relative paths.
+   - Downloads are now checksum-verified.
+   - Commits on GitHub from before the scrub still contain the old absolute paths: a local username, no
+     credentials.
 
 ### What did not work, or remains open
 - **Strict sufficiency of the 10 units.** No configuration reached IIA ≥ 0.5 short of patching more than 40

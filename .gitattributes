@@ -1,0 +1,5 @@
+# Normalise text files to LF in the repository (Windows tools write CRLF)
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.pdf binary

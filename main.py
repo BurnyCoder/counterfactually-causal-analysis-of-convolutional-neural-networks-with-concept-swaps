@@ -9,6 +9,7 @@ Global context: `uv run python main.py` reproduces every number, figure and tabl
     E3 natural       -> results/e3_natural.json      (composited arcs, H5 rotation counterfactual, relevance)
     hero             -> figures/hero_concept_swap.png, figures/concept_swap_sweep.gif (README illustration)
     report           -> reports/generated/{results.md,numbers.tex} + figures/summary_*.png (generated from the JSONs)
+    posthoc          -> results/posthoc_robustness.json (post-hoc, NOT pre-registered: stricter null, ridge output space, exact rotations)
     export           -> hf_export/ (Hugging Face dataset: stimuli, per-pair H1 outcomes, results; run explicitly)
 """
 
@@ -21,7 +22,7 @@ import torch
 from concept_swap.config import load_config
 from concept_swap.log import get_logger, setup_logging
 from concept_swap.model import load_inceptionv1
-from concept_swap.phases import e1_replication, e2_synthetic, e3_natural, export_hf, hero, report_tables
+from concept_swap.phases import e1_replication, e2_synthetic, e3_natural, export_hf, hero, posthoc, report_tables
 
 PHASES = ("e1", "e2", "e3", "hero", "report")
 
@@ -29,18 +30,18 @@ PHASES = ("e1", "e2", "e3", "hero", "report")
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--quick", action="store_true", help="smoke test: small grids, few null sets, results/quick/")
-    ap.add_argument("--phase", choices=(*PHASES, "export", "all"), default="all")
+    ap.add_argument("--phase", choices=(*PHASES, "posthoc", "export", "all"), default="all")
     args = ap.parse_args()
     cfg = load_config()
     cfg = cfg.with_quick() if args.quick else cfg
     path = setup_logging(cfg.log_dir)
     log = get_logger("main")
-    log.info("log file: %s", path)
+    log.info("log file: logs/%s", path.name)
     log.info("config: %s", json.dumps(cfg.as_log_dict()))
     rng = np.random.default_rng(cfg.confirm_seed)  # single RNG stream for null sets and bootstraps
     torch.manual_seed(cfg.confirm_seed)
     run = lambda name: args.phase in (name, "all")
-    model = load_inceptionv1(cfg.device, cfg.lrn_mode) if any(run(p) for p in PHASES[:4]) or args.phase == "export" else None
+    model = load_inceptionv1(cfg.device, cfg.lrn_mode) if any(run(p) for p in PHASES[:4]) or args.phase in ("posthoc", "export") else None
     load = lambda n: json.loads((cfg.results_dir / f"{n}.json").read_text())["results"]
     e1 = e1_replication.run(cfg, model, rng) if run("e1") else None
     if run("e2"):
@@ -51,6 +52,8 @@ def main() -> None:
         hero.run(cfg, model)
     if run("report"):
         report_tables.run(cfg)
+    if args.phase == "posthoc":  # explicit only: post-hoc robustness analyses
+        posthoc.run(cfg, model, rng)
     if args.phase == "export":  # explicit only: writes the Hugging Face upload folder
         export_hf.run(cfg, model)
     log.info("done")
