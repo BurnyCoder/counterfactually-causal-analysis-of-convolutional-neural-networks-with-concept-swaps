@@ -113,3 +113,18 @@ def minimal_pairs(g: pd.DataFrame, cfg: Config, seed: int) -> pd.DataFrame:
             for s in rng.choice(cand, cfg.sources_per_base, replace=False):  # distinct sources per base
                 rows.append(dict(base=b, source=s, dtheta=float(circ_diff(g.theta[s], g.theta[b]))))
     return pd.DataFrame(rows)
+
+
+def nuisance_swap_pairs(g: pd.DataFrame, factor: str) -> np.ndarray:
+    """Row index of each stimulus's partner with the same kind and theta whose `factor` ("radius", "width" or
+    "polarity") takes the next level in cyclic order; other factors are equal (the cell's jitter differs).
+
+    Local: a permutation of the rows. Global context: source for the post-hoc cross-nuisance sham, which asks whether
+    swapping the curve family from a same-orientation stimulus leaves the decoded orientation intact.
+    """
+    levels = np.sort(g[factor].unique())  # the factor's levels present in the grid
+    nxt = dict(zip(levels, np.roll(levels, -1)))  # level -> next level (cyclic, so every row has a partner)
+    keys = ["kind", "theta", "radius", "width", "polarity"]  # identify a stimulus up to its cell's jitter
+    pos, rows = keys.index(factor), list(g[keys].itertuples(index=False, name=None))
+    row = {k: i for i, k in enumerate(rows)}  # stimulus key -> row position
+    return np.array([row[k[:pos] + (nxt[k[pos]],) + k[pos + 1:]] for k in rows])  # replace only `factor`

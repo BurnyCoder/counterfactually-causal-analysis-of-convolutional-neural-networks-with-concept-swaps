@@ -64,14 +64,15 @@ def delta_ranked(ex: dict) -> dict:
     return out
 
 
-def mean_ablation(cfg: Config, ex: dict, sel_windows, rng) -> dict:
+def mean_ablation(cfg: Config, ex: dict, sel_windows, rng, sampler=Fm.delta_matched_sets) -> dict:
     """Necessity-style check: replace the family (or null sets) by its selection-split mean window and ask how often
-    the decoded orientation of the base survives (exploratory)."""
+    the decoded orientation of the base survives (exploratory). `sampler` draws the null sets (decile-matched by
+    default; the post-hoc audit passes the rank-matched sampler)."""
     mean = sel_windows.mean(0)  # (C, 11, 11) mean selection window
     e = ex["elig"]
     p = ex["pairs"]
     b = p.base.values
-    sets = [ex["named"]["family"], ex["named"]["complement"]] + list(Fm.delta_matched_sets(ex["delta"], list(ex["named"]["family"]), 200, rng))
+    sets = [ex["named"]["family"], ex["named"]["complement"]] + list(sampler(ex["delta"], list(ex["named"]["family"]), 200, rng))
     o = ex["run"](sets, base=b, src=b, mode="mean", mean=mean)  # no source: overwrite with the mean
     keep = success(ex, o, target="base")[:, e].mean(1)  # fraction of pairs still decoded as the base orientation
     return dict(base_retained_family=float(keep[0]), base_retained_complement=float(keep[1]),
@@ -133,9 +134,16 @@ def curvature(cfg: Config, model, fam3b: list[int], fam4a: np.ndarray, rng, **kw
     ex = interchange_experiment(cfg, model, "mixed4a", sel, test, pairs(test.grid), pairs(sel.grid), fam3b, fam4a, rng,
                                 cfg.n_null_sets // 2, labels_sel=lab(sel.grid), labels_test=lab(test.grid), **kw)
     out = summarize(cfg, ex, rng, "H2: curvature swap (line <-> arc), 3b curve family -> 4a curve family")
-    d = ex["pairs"]
+    d, e, k = ex["pairs"], ex["elig"], ex["elig"] & ex["keep"]
     for direction, m in (("line_to_arc", d.base.values < len(test.grid) // 2), ("arc_to_line", d.base.values >= len(test.grid) // 2)):
-        out[f"iia_{direction}"] = float(success(ex, ex["outs"]["family"])[ex["elig"] & m].mean())  # per direction
+        out[f"iia_{direction}"] = float(success(ex, ex["outs"]["family"])[e & m].mean())  # per direction
+        for null, nv in ex["nulls"].items():  # the same direction's null distribution (pooled q95 hides the asymmetry)
+            iia_n = success(ex, nv)[:, e & m].mean(1)  # IIA of every null set in this direction
+            eff = lambda o: o[..., k & m, 1].sum(-1) / ex["den"][k & m].sum()  # ratio-of-sums effect in this direction
+            out[f"{direction}_vs_{null}"] = dict(effect_family=float(eff(ex["outs"]["family"])), null_iia_mean=float(iia_n.mean()),
+                                                 null_iia_q95=float(np.quantile(iia_n, 0.95)), iia_p=St.perm_p(out[f"iia_{direction}"], iia_n),
+                                                 null_effect_q95=float(np.quantile(eff(nv), 0.95)),
+                                                 effect_p=St.perm_p(eff(ex["outs"]["family"]), eff(nv)))
     return out
 
 

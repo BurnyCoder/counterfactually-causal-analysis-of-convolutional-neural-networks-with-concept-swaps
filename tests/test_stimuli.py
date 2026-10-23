@@ -53,5 +53,18 @@ def test_grid_and_minimal_pairs():
     assert (np.abs(p.dtheta) >= 30).all() and (p.base != p.source).all()
 
 
+def test_nuisance_swap_pairs_change_only_one_factor():
+    """Each stimulus's partner has the same orientation and differs only in the requested nuisance factor; the
+    mapping is a permutation of the rows (cyclic over the factor's levels)."""
+    g = S.grid(Config(n_theta=24, radii=(20, 40, 60), widths=(3, 5)), seed=1)
+    for factor in ("radius", "width", "polarity"):
+        j = S.nuisance_swap_pairs(g, factor)
+        assert sorted(j.tolist()) == list(range(len(g)))
+        a, b = g, g.iloc[j]
+        assert (a.theta.values == b.theta.values).all() and (a[factor].values != b[factor].values).all()
+        for other in {"radius", "width", "polarity"} - {factor}:
+            assert (a[other].values == b[other].values).all()
+
+
 def test_circ_diff():
     assert S.circ_diff(10, 350) == 20 and S.circ_diff(350, 10) == -20 and abs(S.circ_diff(0, 180)) == 180

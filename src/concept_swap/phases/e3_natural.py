@@ -106,16 +106,23 @@ def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths:
 
 
 @torch.no_grad()
+def mixed3b_moments(cfg: Config, model, paths: list) -> tuple[torch.Tensor, np.ndarray]:
+    """Mean mixed3b map (480, 28, 28) over `paths` and each channel's variance averaged over positions (the size of a
+    mean ablation of that channel). Used by `relevance` and by the post-hoc audit's variance diagnostic."""
+    s1 = s2 = 0.0  # running sums of mixed3b and its square
+    for i in range(0, len(paths), cfg.batch_size):
+        with M.capture(model, ["mixed3b"]) as a:
+            model(M.preprocess(as_tensor(N.load(paths[i:i + cfg.batch_size])).to(cfg.device)))
+        s1, s2 = s1 + a["mixed3b"].double().sum(0), s2 + (a["mixed3b"].double() ** 2).sum(0)
+    var = (s2 / len(paths) - (s1 / len(paths)) ** 2).mean((1, 2)).cpu().numpy()  # E[x^2] - E[x]^2, averaged over positions
+    return (s1 / len(paths)).float(), var
+
+
+@torch.no_grad()
 def relevance(cfg: Config, model, fam3b, rng, sel_paths: list, test_paths: list, n_sets: int = 100) -> dict:
     """Exploratory: mean-ablate the 3b curve family over the whole map and count top-1 changes of the network's
     1008-way prediction (no label mapping needed) and the mean KL(clean || ablated), vs activation-matched nulls."""
-    s1 = s2 = 0.0  # running sums of mixed3b and its square (selection half)
-    for i in range(0, len(sel_paths), cfg.batch_size):  # running mean / second moment of mixed3b over the selection half
-        with M.capture(model, ["mixed3b"]) as a:
-            model(M.preprocess(as_tensor(N.load(sel_paths[i:i + cfg.batch_size])).to(cfg.device)))
-        s1, s2 = s1 + a["mixed3b"].double().sum(0), s2 + (a["mixed3b"].double() ** 2).sum(0)
-    mean = (s1 / len(sel_paths)).float()  # (480, 28, 28) mean map used for ablation
-    var = (s2 / len(sel_paths) - (s1 / len(sel_paths)) ** 2).mean((1, 2)).cpu().numpy()  # per-channel ablation "size"
+    mean, var = mixed3b_moments(cfg, model, sel_paths)  # selection-half mean map (ablation value) and per-channel variance
     sets = [np.array(fam3b)] + list(Fm.delta_matched_sets(var, fam3b, n_sets, rng))  # family + variance-matched nulls
     X = as_tensor(N.load(test_paths))  # confirmatory photos
     flips, kls = np.zeros(len(sets)), np.zeros(len(sets))  # accumulated over batches

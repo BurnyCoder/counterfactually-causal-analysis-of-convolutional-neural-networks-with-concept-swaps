@@ -40,12 +40,16 @@
   | IIA | 0.077 | 0.030 | 0.030 | 0.081 | 0.140 |
 
 - **H5 curve-absent contrast:** effect 0.135, IIA 0.017 (2585 pairs). That is about half the curve-present effect.
-  The family matters more when it is actually driven.
+  No null sets were run on these crops, so this does not show that the family matters *more* when driven. Many
+  curve-absent crops have exactly zero family response, so a smaller effect is expected mechanically.
 - **Relevance:**
   - Top-1 prediction changes on **17.2%** of photos when the family is mean-ablated, against **9.3%** for matched
     null ablations (q95 11.0%, p = 0.0099).
   - Mean KL is 0.205 against 0.050 for the nulls (q95 0.069, p = 0.0099).
   - With 100 null sets, p = 1/101 is the smallest attainable p-value.
+  - The null is matched in ablation size (post-hoc audit). The family's mean activation variance is 0.96 times that
+    of the matched null sets, and its units sit at the 74th–94th variance percentiles. So the extra flips are not
+    caused by the family's channels simply being larger.
 
 ![H5 null distributions](../figures/e3_h5_effect_null.png)
 

@@ -13,18 +13,21 @@ between the images. All pass/fail rules were written down and published before r
 1. **The observation replicates.** Our setup reproduces the original authors' tuning curves closely: mean
    correlation 0.97 for the 10 curve neurons and 0.85 for the next layer's 14 curve neurons.
 2. **The 10 neurons are special.** Transplanting them moves the next layer's curve code about 41% of the way to the
-   other image. 95% of the control groups of 10 neurons stay below 10%.
+   other image. 95% of the control groups of 10 neurons stay below 10%. Ranking all 480 neurons by how much each one
+   moves the next layer on its own (a check added later) picks 9 of the 10 published neurons as the top 10.
 3. **They are not enough on their own.** The next layer actually switches to the transplanted direction in only
-   about 18% of cases, so our pre-registered "strong" hypothesis (at least 50%) is **falsified**. The direction
-   information is spread over many more neurons: the other 470 neurons carry most of it, and about 80 neurons are
-   needed for reliable transfer.
+   about 18% of cases, so our pre-registered "strong" hypothesis (at least 50%) is **falsified**. The rest of the
+   direction information is spread over many more neurons: picking the most useful ones first, it takes about 80 for reliable transfer. How
+   well the other 470 neurons can replace the 10 depends on how we read the next layer. Read from its 14 curve
+   neurons, they transfer the direction in 40% of cases. Read from the whole layer, they transfer it in only 2%,
+   and the 10 curve neurons carry 57% of the shift.
 4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
-   neurons call it a curve 81% of the time.
+   neurons call it a curve 81% of the time. Control groups do so 3% of the time on average.
 5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay below 0.075.
    Switching the 10 neurons off changes the network's final answer on 17% of photos, versus 9% for control groups.
 
 **Bottom line.** "Curve detector" is a good *observational* description, and the units are *causally specific*, but
-they are one part of a distributed, redundant orientation code rather than its single carrier. Details:
+they are one part of a shared orientation code rather than its single carrier. Details:
 [all experiments](all_experiments.md).
 
 ## Key terms
@@ -47,7 +50,7 @@ they are one part of a distributed, redundant orientation code rather than its s
 | Pigeonhole bootstrap | A way to get error bars when pairs share images. | Resample base images and source images separately ([Owen 2007](https://doi.org/10.1214/07-AOAS122)). |
 | Holm correction | Adjusts p-values when testing several hypotheses. | Applied across the 5 secondary hypotheses. |
 | Pre-registration | Writing down hypotheses and pass/fail rules before seeing the data. | `reports/preregistration.md`, committed before the confirmatory runs. |
-| Sufficiency / necessity / redundancy | The units alone carry the signal / removing them breaks it / other units also carry it. | IIA of the family / mean-ablation retention / complement IIA. |
+| Sufficiency / necessity / redundancy | The units alone carry the signal / removing them breaks it / other units can do the job without them. | IIA of the family / mean-ablation retention / complement IIA (which depends on the readout). |
 
 ## Networks used
 

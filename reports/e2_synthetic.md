@@ -90,10 +90,14 @@ Every verdict is unchanged.
   | IIA | 0.10 | 0.36 | 0.44 | 0.79 | 0.98 |
 
   All 10 family units lie in Δ percentiles 96.5–99.4, inside the top 17 channels. The family is a better
-  10-channel set than the top-10 by Δ (0.177 vs 0.103), but reaching IIA ≈ 0.8 needs about 80 channels.
+  10-channel set than the top-10 by Δ (0.177 vs 0.103), but this ordering needs about 80 channels for IIA ≈ 0.8.
+  Ranking channels by single-channel patching effect instead (post-hoc audit, below) gives IIA 0.485 / 0.693 /
+  0.809 for the top 20 / 40 / 80. So IIA ≈ 0.5 takes 20–40 channels and IIA ≈ 0.8 still about 80. Both orderings
+  are greedy, so these counts are upper bounds on the smallest sufficient set.
 - **Mean ablation of the family.** The decoded base orientation survives in 0.806 of pairs. It survives in 0.985
   under Δ-matched null ablations (q05 0.964) and in 0.553 under complement ablation. Removing the family disrupts
-  orientation decoding about 13× more often than removing matched channels (19.4% vs 1.5%).
+  orientation decoding about 13× more often than removing matched channels (19.4% vs 1.5%). Against the stricter
+  rank-matched null (post-hoc audit), the null retains 0.982 (q05 0.963), so the ratio is about 11× (19.4% vs 1.8%).
 - **Same-orientation sham** (source = same θ, different jitter): base orientation retained in 0.999 of pairs. The
   patch itself does not corrupt the readout.
 - **Closer to source than base:** 0.382 of pairs.
@@ -107,8 +111,12 @@ Every verdict is unchanged.
 - **H2 is asymmetric.**
   - Line base with arc source: the 4a curve units read "arc" in 0.807 of pairs.
   - Arc base with line source: they read "line" in only 0.003 of pairs.
-  - The family is enough to *add* curvature, but other channels also signal curvature, so removing the family's
-    curve evidence does not remove "arc".
+  - Each direction against its own Δ-matched null (1000 sets, post-hoc audit):
+    - line → arc: null IIA mean 0.030, q95 0.114 (p = 0.001); effect 0.418 vs null q95 0.154.
+    - arc → line: the effect is 0.367 vs null q95 0.130 (p = 0.001), although the decision flips almost never.
+  - The decision is binary (line vs arc template), a lower bar than H1's 72-way decode.
+  - The family's curvature evidence counts in both directions, but other channels also signal curvature, so
+    removing the family's evidence does not flip "arc" to "line".
   - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359 and reaches only IIA 0.016.
 
 ![dose-response](../figures/e2_h1_dose.png)
@@ -121,18 +129,39 @@ Every verdict is unchanged.
 2. **The family is a highly specific causal mediator.**
    - The best of 4000 matched control sets of 10 channels transfers orientation in 0.13% of pairs (null q95 ≤ 0.001).
    - The family moves the 4a curve code 41% of the way to the source, versus a Δ-matched null q95 of 9.8%.
-   - It is 2% of `mixed3b`'s channels yet carries about 41% of the readout displacement. It beats the data-driven
-     Fisher top-10, and its ablation disrupts orientation about 13× more than matched ablations.
-3. **The orientation code is distributed and redundant.**
-   - The complement alone moves the readout 59% of the way, and about 80 channels are needed for reliable transfer.
-   - Effects are close to additive: family 0.410 + complement 0.590 = 1.000.
-   - Part of this additivity is structural. Six of the 14 readout units are 1×1-branch units, whose pre-ReLU output
-     is linear in the max-pooled `mixed3b` channels, so their effects add exactly.
+   - It is 2% of `mixed3b`'s channels yet carries about 41% of the readout displacement.
+   - A causal, data-driven ranking recovers it (post-hoc audit). Ranking all 480 channels by single-channel
+     patching effect on the selection split puts 9 of the 10 family units in the top 10. Unit 379 ranks 12th, and
+     channel 380 takes its place.
+   - The 10 best *non-family* channels under that ranking reach effect 0.201 and IIA 0.001 on the confirmatory
+     pairs. The family's margin over them is 0.209, CI [0.197, 0.221].
+   - The observational Fisher top-10 (window centre only) is a much weaker competitor (IIA 0.028).
+   - The family's ablation disrupts orientation 11–13× more often than matched ablations.
+   - "Specific" here means relative to other `mixed3b` channels. A cross-nuisance sham (post-hoc audit) checks the
+     concept side: copying the family from a stimulus with the same orientation but another radius, width or
+     polarity leaves the decoded orientation intact in 99.2–99.9% of stimuli.
+3. **The orientation code is shared, and whether the rest is redundant depends on the readout.**
+   - For the 14 curve units, the complement alone moves the readout 59% of the way and transfers the decoded
+     orientation in 40% of pairs. Reliable transfer (IIA ≈ 0.8) takes about 80 channels.
+   - Under the pre-registered whole-layer ridge readout, the complement transfers the decoded orientation in only
+     1.9% of pairs (family: 10.5%).
+   - In that decoder's (cos, sin) output space, measured in the post-hoc audit, the family carries 0.573 of the
+     displacement and the complement 0.427.
+   - So the other 470 channels carry the rest of the signal, but they replace the family only for the curve-unit
+     readout.
+   - Effects are close to additive: family 0.410 + complement 0.590 = 1.000, and 0.573 + 0.427 = 1.000 in ridge
+     output space.
+   - This additivity is largely structural:
+     - `maxpool4` acts per channel.
+     - Six of the 14 readout units are 1×1-branch units, whose pre-ReLU output is linear in the max-pooled
+       `mixed3b` channels, so their effects add exactly.
+     - The ridge decoder is linear.
+     - It is not evidence about how the code is organised.
    - This fits Gorton's finding of extra curve features outside the 10 neurons
      ([2024](https://arxiv.org/abs/2406.03662)).
 4. **Curvature, not just orientation, is carried.** H2 shows that inserting the family's arc activations into a line
-   image makes 4a read "arc" 81% of the time. This favours "curve detector" over "oriented line detector" for what
-   the family contributes downstream.
+   image makes 4a read "arc" 81% of the time. Matched control sets do so in 3.0% on average (q95 11.4%). This
+   favours "curve detector" over "oriented line detector" for what the family contributes downstream.
 5. **The Curve Circuits claim (3a → 3b) shows the same pattern, more weakly.** The effect is above the matched nulls
    but IIA is only 0.058. The 3a family carries a small share of 3b's curve code: the complement reaches 0.757.
 
