@@ -153,3 +153,34 @@ Effect-ranked channels: all mixed3b channels ranked by single-channel patching e
 - Mean ablation vs rank-matched null (200 sets), base orientation retained: family 0.806, complement 0.553, rank-null mean 0.982 (q05 0.963)
 - Cross-nuisance sham (source = same orientation, another radius / width / polarity), base orientation retained: radius: family 0.992, complement 0.927, all 0.905 (n 1142); width: family 0.999, complement 0.975, all 0.969 (n 1142); polarity: family 0.998, complement 0.971, all 0.969 (n 1142)
 - Relevance null size check: family variance percentiles [0.94, 0.74, 0.88, 0.93, 0.9, 0.92, 0.83, 0.89, 0.89, 0.86]; family mean variance / matched-null mean variance = 0.96
+
+## Third-audit checks (NOT pre-registered; post-hoc, exploratory)
+
+Ridge-readout causal ranking: all mixed3b channels ranked by single-channel effect in the ridge decoder's (cos, sin) output on the selection split. Family ranks: [1, 2, 3, 4, 5, 6, 7, 10, 11, 24]; top-10: [379, 388, 342, 330, 340, 385, 349, 359, 357, 406] (8 of 10 are family units).
+
+| set (ranked on selection, scored on confirmatory pairs) | decoded-angle IIA | (cos, sin) effect | effect difference, family minus set [CI] |
+|---|---|---|---|
+| family | 0.105 | 0.573 | — |
+| top10_by_effect | 0.129 | 0.596 | [-0.028, -0.018] |
+| top10_nonfamily_by_effect | 0.003 | 0.211 | [0.350, 0.374] |
+
+Additivity by mixed4a group (4608 H1 pairs, z-scored pre-ReLU readout): non-additivity = sum|D_F + D_C - D_all|^2 / sum|D_all|^2 (0 = exactly additive); effects are projections on D_all within the group.
+
+| group | channels | non-additivity | effect family | effect complement | sum |
+|---|---|---|---|---|---|
+| 1x1 | 192 | 2e-13 | 0.274 | 0.726 | 1.000 |
+| 3x3 | 204 | 0.095 | 0.246 | 0.754 | 1.000 |
+| 5x5 | 48 | 0.07 | 0.226 | 0.775 | 1.001 |
+| pool_reduce | 64 | 3.4e-13 | 0.166 | 0.834 | 1.000 |
+| curve_units_1x1 | 6 | 1.2e-13 | 0.561 | 0.439 | 1.000 |
+| curve_units_5x5 | 8 | 0.018 | 0.315 | 0.686 | 1.001 |
+| curve_units_all | 14 | 0.011 | 0.411 | 0.590 | 1.000 |
+
+H5 on matched angles (-90, 90, 180 deg; 506 curve-present confirmatory photos, 1518 pairs; family only). Original = rotations as in the pre-registered H5 (180 deg is an exact transpose, +-90 deg are bilinear on non-square images); exact = square crops, exact transposes at every angle.
+
+| rotations | effect | IIA | effect / IIA at -90 deg | effect / IIA at 90 deg | effect / IIA at 180 deg |
+|---|---|---|---|---|---|
+| original | 0.335 | 0.108 | 0.322 / 0.085 | 0.324 / 0.115 | 0.356 / 0.125 |
+| exact | 0.336 | 0.108 | 0.322 / 0.087 | 0.324 / 0.115 | 0.357 / 0.123 |
+
+Effect difference, exact minus original: 0.000 [-0.001, 0.001] (photo-cluster bootstrap).

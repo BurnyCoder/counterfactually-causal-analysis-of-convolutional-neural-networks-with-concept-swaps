@@ -175,8 +175,8 @@ def audit2_section(a: dict) -> tuple[list[str], dict]:
           f"{_f(v['effect_family'] + v['effect_complement'])} |" for k, v in groups.items()]
     ang = h5["angles"]
     L += ["", f"H5 on matched angles ({', '.join(map(str, ang))} deg; {h5['n_images']} curve-present confirmatory photos, {h5['n_pairs']} pairs; "
-              "family only). Original = rotations as in the pre-registered H5 (180 deg is an exact transpose, 90 deg is bilinear on non-square "
-              "images); exact = square crops, exact transposes at every angle.", "",
+              "family only). Original = rotations as in the pre-registered H5 (180 deg is an exact transpose, +-90 deg are bilinear on "
+              "non-square images); exact = square crops, exact transposes at every angle.", "",
           "| rotations | effect | IIA | " + " | ".join(f"effect / IIA at {x} deg" for x in ang) + " |", "|---|---|---|" + "---|" * len(ang)]
     L += [f"| {m} | {_f(h5[m]['effect'])} | {_f(h5[m]['iia'])} | " + " | ".join(f"{_f(v['effect'])} / {_f(v['iia'])}" for v in h5[m]["by_angle"].values())
           + " |" for m in ("original", "exact")]
