@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local config (copy .env.example to .env)
+.env
+
+# Large / regenerable data (Imagenette is ImageNet-derived: do not redistribute)
+data/imagenette/
+data/cache/
+
+# Tooling caches
+.pytest_cache/
+
+# LaTeX build artifacts (paper.pdf itself is committed)
+reports/paper/*.aux
+reports/paper/*.log
+reports/paper/*.out
+reports/paper/*.bbl
+reports/paper/*.blg
+reports/paper/*.toc
