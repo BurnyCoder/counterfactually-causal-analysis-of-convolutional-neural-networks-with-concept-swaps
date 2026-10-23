@@ -78,6 +78,29 @@ def test_patch_hook_identity_and_full_swap(model, images):
     torch.testing.assert_close(swapped["mixed4a"], clean["mixed4a"].flip(0))
 
 
+def test_readout_additivity_is_structural_only_for_1x1_and_pool_branches(model, device):
+    """Patching disjoint channel sets A and B of a mixed3b window adds exactly in the mixed4a 1x1 and pool branches
+    (per-channel max-pooling, then a linear 1x1 conv), but not in the 3x3 and 5x5 branches, whose 1x1 bottleneck mixes
+    channels before a ReLU. This is the architectural part of the near-additivity discussed in the reports (audit2).
+    Inputs are sparse, ReLU-like maps: with dense uniform inputs every 5x5 bottleneck unit keeps its sign, so that
+    branch happens to add exactly too (an input-regime effect, not an architectural one)."""
+    m64 = copy.deepcopy(model).double()
+    g = torch.Generator(device).manual_seed(2)
+    base, src = (torch.relu(torch.randn(1, 480, 11, 11, dtype=torch.float64, device=device, generator=g) * 50) for _ in range(2))
+
+    def delta(ch):
+        """Pre-ReLU 4a readout change when channels `ch` of the base window take the source's values."""
+        x = base.clone()
+        x[:, ch] = src[:, ch]
+        return M.readout_from_window(m64, "mixed4a", x) - M.readout_from_window(m64, "mixed4a", base)
+
+    a = torch.arange(0, 480, 2, device=device)  # every other channel; a + 1 is the disjoint rest
+    gap = delta(a) + delta(a + 1) - delta(torch.arange(480, device=device))  # interaction term per 4a channel
+    for name, s in M.branch_slices("mixed4a").items():
+        g_max = gap[:, s].abs().max().item()
+        assert (g_max < 1e-9) if name in ("1x1", "pool_reduce") else (g_max > 1e-3), (name, g_max)
+
+
 def test_rf_locality_of_the_readout_unit(model, images):
     """The planned locality hypothesis, as an architectural identity: overwriting mixed3b everywhere OUTSIDE the 11x11
     window (rows/cols 8..18) leaves mixed4a unit (6,6) unchanged; overwriting only INSIDE it changes the unit.

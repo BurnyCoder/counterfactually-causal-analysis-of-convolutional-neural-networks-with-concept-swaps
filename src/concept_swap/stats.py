@@ -11,15 +11,21 @@ import numpy as np
 from statsmodels.stats.multitest import multipletests  # https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html
 
 
+def cluster_weights(ids: np.ndarray, B: int, rng: np.random.Generator) -> np.ndarray:
+    """(B, n) cluster-bootstrap weights: resample the distinct ids with replacement; each element's weight is how many
+    times its id was drawn (Davison & Hinkley 1997, Bootstrap Methods and their Application, sec. 3.8,
+    https://doi.org/10.1017/CBO9780511802843). Also one factor of the pigeonhole weights below."""
+    u, inv = np.unique(ids, return_inverse=True)  # distinct clusters and each element's index into them
+    # Draw len(u) clusters with replacement per replicate; bincount turns the draws into per-cluster counts.
+    counts = np.stack([np.bincount(rng.integers(0, len(u), len(u)), minlength=len(u)) for _ in range(B)])
+    return counts[:, inv].astype(np.float64)  # broadcast each cluster's count to its elements
+
+
 def pigeonhole_weights(base: np.ndarray, src: np.ndarray, B: int, rng: np.random.Generator) -> np.ndarray:
     """(B, n_pairs) bootstrap weights: resample base ids and source ids independently with replacement; a pair's
-    weight is (times its base was drawn) x (times its source was drawn)."""
-    ub, bi = np.unique(base, return_inverse=True)  # distinct base images and each pair's index into them
-    us, si = np.unique(src, return_inverse=True)  # distinct source images and each pair's index into them
-    # Draw len(ub) base images with replacement per replicate; bincount turns the draws into per-image counts.
-    cb = np.stack([np.bincount(rng.integers(0, len(ub), len(ub)), minlength=len(ub)) for _ in range(B)])
-    cs = np.stack([np.bincount(rng.integers(0, len(us), len(us)), minlength=len(us)) for _ in range(B)])  # same for sources
-    return (cb[:, bi] * cs[:, si]).astype(np.float64)  # pair weight = product of its two image counts (Owen 2007)
+    weight is (times its base was drawn) x (times its source was drawn) (Owen 2007). All base draws come before all
+    source draws, as in the confirmatory run, so its numbers are reproduced exactly."""
+    return cluster_weights(base, B, rng) * cluster_weights(src, B, rng)
 
 
 def weighted_rates(values: np.ndarray, W: np.ndarray) -> np.ndarray:
