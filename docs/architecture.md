@@ -1,7 +1,11 @@
 # Code architecture and data flow
 
 `main.py` is the only entry point. It loads the configuration and the model once, then calls the phases in order.
-Each phase writes `results/<phase>.json` and figures. Library modules hold no experiment logic.
+- E1, E2 and E3 each write `results/<phase>.json`; E1 also draws its figures.
+- `hero` writes the README figure and GIF.
+- `report` writes the generated tables, LaTeX macros and the E2/E3/summary figures from the JSONs.
+- `posthoc` and `export` run only when named. They write `results/posthoc_robustness.json` and `hf_export/`.
+- Library modules hold no experiment logic.
 
 ```mermaid
 graph TD
@@ -13,6 +17,12 @@ graph TD
   MAIN --> E2[phases/e2_synthetic.py]
   MAIN --> E3[phases/e3_natural.py]
   MAIN --> REP[phases/report_tables.py]
+  MAIN --> HERO[phases/hero.py<br/>README figure + GIF]
+  MAIN -.->|only when named| PH[phases/posthoc.py<br/>rank-matched null, exact rotations]
+  MAIN -.->|only when named| EXP[phases/export_hf.py<br/>hf_export/]
+  PH --> COMMON
+  HERO --> COMMON
+  EXP --> COMMON
   E1 --> STIM[stimuli.py<br/>arcs/lines, grids, minimal pairs]
   E2 --> COMMON[phases/common.py<br/>interchange_experiment, summarize]
   E3 --> COMMON
@@ -34,7 +44,9 @@ graph TD
   R1 --> REP
   R2 --> REP
   R3 --> REP
-  REP --> MD[(reports/generated/results.md)]
+  PH --> R4[(results/posthoc_robustness.json)]
+  R4 --> REP
+  REP --> MD[(reports/generated/results.md<br/>numbers.tex)]
 ```
 
 ## What happens when you run `uv run python main.py`
@@ -42,7 +54,7 @@ graph TD
 1. **Config and logging.** `.env` is read, and the full config is logged to `logs/<timestamp>.log` and the terminal.
 2. **Model.** Lucent's InceptionV1 is loaded. The weights (`inception5h.pth`, 28 MB) are downloaded once by
    torch.hub. Its `F.local_response_norm` calls are redirected to TF-exact constants.
-3. **E1, observational replication (about 1 minute).**
+3. **E1, observational replication (13 s including start-up).**
    - Render 1152 arcs and 1152 lines from the selection split.
    - Run them through the network and read `mixed3a`/`mixed3b` at (13,13) and `mixed4a` at (6,6).
    - Average activation per orientation to get tuning curves.
@@ -70,7 +82,8 @@ graph TD
 
 - **Cropped-window recomputation.** Thousands of null sets × 4608 pairs would mean millions of full forward passes.
   We re-run only the block between the patched layer and the readout, on the receptive-field window.
-  `tests/test_model.py` proves this equals the full network in float64, with a maximum difference of about 1e-14.
+  `tests/test_model.py` checks that this equals the full network in float64: it asserts ≤ 1e-9, and a re-check
+  measured a difference of 0.
 - **One generic experiment function.** `interchange_experiment` serves every hypothesis. Only the splits, pairs,
   family, readout and labels change, which keeps H1, H2, H4, H5 and the robustness runs comparable.
 - **No hand-copied numbers.** Reports quote `reports/generated/results.md`, which `report_tables.py` writes from

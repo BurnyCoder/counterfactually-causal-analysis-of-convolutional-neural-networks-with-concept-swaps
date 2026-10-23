@@ -27,7 +27,7 @@ Run it with `uv run python main.py --phase posthoc`.
 
 ## Results
 
-| Test | Family effect [95% CI] | Rank-null q95 | Pre-registered decile-null q95 | Top-Δ non-family set: IIA / effect |
+| Test | Family effect [95% CI] | Rank-null q95 | Decile-matched null q95 | Top-Δ non-family set: IIA / effect |
 |---|---|---|---|---|
 | H1 (3b → 4a curve units) | 0.410 [0.400, 0.419] | 0.121 | 0.098 | 0.000 / 0.125 |
 | H1-ridge, z-space (as pre-registered) | 0.248 | 0.135 | 0.106 | 0.000 / 0.155 |
@@ -38,6 +38,8 @@ Run it with `uv run python main.py --phase posthoc`.
 | H5 natural rotation (as pre-registered) | 0.287 | 0.073 | 0.075 | 0.000 / 0.083 |
 | **H5, exact rotations only (no blur)** | **0.336** [0.310, 0.358] | 0.077 | 0.079 | 0.000 / 0.066 |
 
+- The decile-matched column is the pre-registered null type. Its values come from the pre-registered runs, except
+  in the two bold rows, where the decile-matched null was run post hoc.
 - Every margin over the rank-matched q95 has a 95% pigeonhole CI above 0.
 - Every permutation p is at its floor: 0.001 with 1000 sets, 0.002 with 500.
 - IIA against the rank-matched null: the null q95 is at most 0.003 for every test except H2 (0.017).
@@ -49,7 +51,7 @@ Run it with `uv run python main.py --phase posthoc`.
     It is similar or lower for the other tests: H2 0.100 vs 0.141; H4 0.146 vs 0.169; composited 0.106 vs 0.104;
     H5 0.073 vs 0.075.
   - Even the strongest 10 non-family channels move the 4a curve code only 12.5% of the way, against 41% for the
-    family, and never transfer the decoded orientation.
+    family. They transfer the decoded orientation in only 1 of 4574 pairs.
   - "The family is special among channels that change as much" survives.
 - **On the decoded orientation itself, the family's effect is larger than the z-space number suggested.**
   - The ridge readout's predicted orientation vector moves 57% of the way to the source's, yet lands within 10° of

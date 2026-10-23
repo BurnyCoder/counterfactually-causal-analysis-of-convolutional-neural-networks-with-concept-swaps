@@ -36,16 +36,17 @@ The exact frozen protocol (thresholds, null sizes, seeds) is in `reports/preregi
 ## Why both IIA and a continuous effect
 - **IIA (binary)** is Huang et al.'s metric and answers "does the network now *decode* the source orientation?".
   It is strict: the 4a readout must move all the way to the source template.
-- Activation-patching practice recommends a continuous, roughly linear metric as well
-  ([Heimersheim & Nanda 2024](https://arxiv.org/abs/2404.15255);
-  [Zhang & Nanda 2023](https://arxiv.org/abs/2309.16042)). The **normalized projection effect** (0 to 1) measures
+- Metric choice can change patching conclusions ([Zhang & Nanda 2024](https://arxiv.org/abs/2309.16042)).
+  [Heimersheim & Nanda 2024](https://arxiv.org/abs/2404.15255) advise having at least one continuous, roughly linear
+  metric. The **normalized projection effect** (0 to 1) measures
   partial movement toward the source. It is a ratio of sums, so pairs with tiny base/source differences cannot blow
   it up, and the bottom 5% of such pairs are dropped.
 
 ## Why the cropped-window recomputation
 - The readout depends only on an 11×11 `mixed3b` window, which follows from stride and kernel arithmetic; see
   `model.crop_window`. Re-running only `maxpool4 → mixed4a` on that window is exact (fp64 test) and much cheaper
-  than a full forward pass: about 0.07 s per neuron set for 4608 pairs on the RTX 5070 Laptop.
+  than a full forward pass: about 0.15 s per neuron set for 4608 pairs, decoding included, on the RTX 5070 Laptop.
+  The pilot log shows 200 sets in 31 s.
 - This makes 2000-set nulls on 4608 pairs feasible on a laptop GPU, which in turn makes p-values below 10⁻³
   attainable.
 

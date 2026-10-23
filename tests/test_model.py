@@ -51,8 +51,8 @@ def test_run_block_matches_full_forward(model, images):
 def test_cropped_readout_equals_full_map(model, images):
     """Running a block on the cropped input window reproduces the full-map value at the readout position.
 
-    Checked in float64 (exact up to rounding, ~1e-14) because in float32 cuDNN may pick a different convolution
-    algorithm for the 28x28 map than for the 11x11 crop (observed max relative gap ~1.3e-5 of the value range).
+    Checked in float64 (a re-check measured a difference of 0) because in float32 cuDNN may pick a different
+    convolution algorithm for the 28x28 map than for the 11x11 crop (observed gap up to ~3e-3, ~1e-5 of the value range).
     """
     m64 = copy.deepcopy(model).double()
     with M.capture(m64, ["mixed3a", "mixed3b"]) as acts:

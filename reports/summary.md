@@ -10,8 +10,8 @@ neurons "see". As a control we transplanted thousands of other 10-neuron groups 
 between the images. All pass/fail rules were written down and published before running the experiment.
 
 **What we found.**
-1. **The observation replicates.** Our setup reproduces the original authors' tuning curves almost exactly
-   (correlation 0.97).
+1. **The observation replicates.** Our setup reproduces the original authors' tuning curves closely: mean
+   correlation 0.97 for the 10 curve neurons and 0.85 for the next layer's 14 curve neurons.
 2. **The 10 neurons are special.** Transplanting them moves the next layer's curve code about 41% of the way to the
    other image. 95% of the control groups of 10 neurons stay below 10%.
 3. **They are not enough on their own.** The next layer actually switches to the transplanted direction in only
