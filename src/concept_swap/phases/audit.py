@@ -6,8 +6,9 @@ Local: six checks of interpretive claims that the pre-registered analyses did no
 (c) H2 per swap direction against that direction's own null; (d) mean ablation against the stricter rank-matched
 null; (e) a cross-nuisance sham (same orientation, other radius / width / polarity); (f) whether the relevance
 test's null ablations match the family's ablation size (variance).
-Global context: results go to results/posthoc_audit.json and are discussed in reports/posthoc_robustness.md; the
-pass/fail outcomes were written down before this phase ran (plan of the audit, see that report).
+Global context: results go to results/posthoc_audit.json and are discussed in reports/posthoc_robustness.md. The
+overturning outcomes of (a)-(d) were set in the audit plan before this phase ran, but were first committed together
+with its results, so git does not timestamp them; (e) and (f) have no overturning rule.
 """
 
 import numpy as np

@@ -70,7 +70,10 @@ def rank_matched_sets(delta: np.ndarray, family: list[int], n_sets: int, rng: np
 
 
 def top_nonfamily(delta: np.ndarray, family: list[int], k: int) -> np.ndarray:
-    """The k non-family channels with the largest delta (the strongest single competitor set), in descending order."""
+    """The k non-family channels with the largest delta (the most-changing competitor set), in descending order.
+
+    Not the strongest competitor: the post-hoc audit's set ranked by single-channel patching effect beats it
+    (`phases/audit.py`)."""
     order = np.argsort(-delta)  # largest delta first
     return order[~np.isin(order, family)][:k]  # boolean mask keeps the order (np.setdiff1d would re-sort)
 

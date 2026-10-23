@@ -23,7 +23,8 @@ BRANCHES = ("1x1", "3x3", "5x5", "pool_reduce")
 BRANCH_WIDTHS = {"mixed3a": (64, 128, 32, 32), "mixed3b": (128, 192, 96, 64), "mixed4a": (192, 204, 48, 64)}
 
 # TF graph LRN attrs are depth_radius=5, bias=2, alpha=9.999999747378752e-05, beta=0.5. PyTorch divides alpha by
-# the window size n=2*5+1, hence alpha*11 (lucent PR #51 discussion: https://github.com/greentfrapp/lucent/pull/51).
+# the window size n=2*5+1, hence alpha*11 (TF formula: https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization;
+# same derivation in https://github.com/greentfrapp/lucent/pull/51#issuecomment-6345247394).
 TF_LRN = dict(size=11, alpha=11 * 9.999999747378752e-05, beta=0.5, k=2.0)
 LUCENT_LRN = dict(size=9, alpha=9.99999974738e-05, beta=0.5, k=1)  # values hardcoded in Lucent's forward()
 _ACTIVE_LRN = {"params": TF_LRN}  # set by each model's forward pre-hook, read by the shim below

@@ -27,7 +27,7 @@ dependencies = [
 requires = ["uv_build>=0.13.0,<0.14.0"]
 build-backend = "uv_build"
 
-# PyTorch CUDA 13.0 wheels (needed for the Blackwell RTX 5070, sm_120), following
+# PyTorch CUDA 13.0 wheels (Blackwell sm_120, e.g. the RTX 5070, needs CUDA >= 12.8 wheels, i.e. torch >= 2.7), following
 # https://docs.astral.sh/uv/guides/integration/pytorch/#using-a-pytorch-index
 [[tool.uv.index]]
 name = "pytorch-cu130"

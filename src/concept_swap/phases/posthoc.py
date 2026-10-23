@@ -1,8 +1,8 @@
 """Post-hoc robustness phase (NOT pre-registered; added after the confirmatory run in response to code review).
 
 Local: re-runs every hypothesis against a stricter **rank-matched** null (each curve unit matched to one of its nearest
-non-family channels by activation change) and the single strongest competitor set (the 10 non-family channels with
-the largest activation change); recomputes the H1-ridge effect in the ridge decoder's (cos, sin) output space; and
+non-family channels by activation change) and the most-changing competitor set (the 10 non-family channels with
+the largest activation change; the audit phase later found a stronger, effect-ranked competitor); recomputes the H1-ridge effect in the ridge decoder's (cos, sin) output space; and
 repeats H5 with blur-free rotations (square crops, exact 90/180/270-degree transposes).
 Global context: the pre-registered decile-matched null leaves the family at the extreme tail of its bin, and the
 H1-ridge effect and H5 rotations had interpretation caveats; this phase tests whether the conclusions survive them.

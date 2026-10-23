@@ -2,7 +2,8 @@
 
 Local: parses `--quick` (smoke test on tiny grids) and `--phase` (run one phase; later phases read earlier results
 from results/*.json), sets up timestamped logging, loads InceptionV1 once and calls each phase.
-Global context: `uv run python main.py` reproduces every number, figure and table in reports/ and the paper.
+Global context: `uv run python main.py` reproduces the pre-registered numbers, figures and tables; the post-hoc
+numbers in reports/ and the paper also need `--phase posthoc`, then `--phase audit`, then `--phase report`.
 
     E1 replication   -> results/e1_replication.json  (observational gate: do we reproduce the published tuning?)
     E2 synthetic     -> results/e2_synthetic.json    (H1 primary, H1 ridge, H2, H4, stability, LRN sensitivity)
