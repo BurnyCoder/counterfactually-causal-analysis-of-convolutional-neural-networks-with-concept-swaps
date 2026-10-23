@@ -20,7 +20,6 @@ from concept_swap import families as Fm, interventions as I, model as M, natural
 from concept_swap.config import Config
 from concept_swap.log import get_logger
 from concept_swap.phases.common import Readout, Split, interchange_experiment, save_json, summarize
-from concept_swap.plots import plot_null
 
 log = get_logger(__name__)
 
@@ -101,11 +100,6 @@ def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths:
     out["curve_absent_contrast"] = dict(iia=float((np.abs(S.circ_diff(o[:, 0], clean[p_abs.source.values])) <= cfg.tol_deg).mean()),
                                         effect=float(o[:, 1].sum() / ((zs - zb) ** 2).sum()), n_pairs=int(len(p_abs)))
     log.info("H5 exploratory curve-absent contrast: %s", out["curve_absent_contrast"])
-    plot_null(cfg, "e3_h5_iia_null", "H5: natural rotation counterfactual, curve family vs null neuron sets",
-              "IIA (patched base decoded as the rotated version)",
-              dict(value=out["iia_vs_delta_matched"]["rate"], ci=out["iia_vs_delta_matched"]["rate_ci"], label="curve family"),
-              {"activation-change-matched null": out["null_iia"]["delta_matched"], "branch-matched null (5x5)": out["null_iia"]["branch_matched"]},
-              {"Fisher top-10": out["iia"]["fisher_topk"], "complement (470)": out["iia"]["complement"]})
     return out
 
 

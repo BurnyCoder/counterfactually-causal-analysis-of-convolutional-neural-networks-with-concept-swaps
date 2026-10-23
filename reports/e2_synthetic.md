@@ -1,0 +1,143 @@
+# E2: interchange interventions on synthetic stimuli
+
+**Question.** Do the 10 `mixed3b` curve units *mediate* curve orientation for the next layer?
+
+**Design.** Fixed in [`preregistration.md`](preregistration.md):
+- 4608 confirmatory minimal pairs (jitter seed 2) that differ only in orientation.
+- Swap the family's 11×11 receptive-field window from source to base and recompute `mixed4a`.
+- Primary readout: the 14 published `mixed4a` curve units, decoded with a nearest-template decoder.
+- Controls: 2000 activation-change-matched (Δ) and 2000 branch-matched null sets.
+
+Numbers come from `results/e2_synthetic.json` and are tabulated in
+[`generated/results.md`](generated/results.md). Brackets are 95% pigeonhole-bootstrap CIs.
+
+## Pre-registered results
+
+| Test | Readout | IIA family | Δ-null q95 (IIA) | Normalized effect family | Δ-null q95 (effect) | Verdict |
+|---|---|---|---|---|---|---|
+| **H1 (primary)** | 4a curve family | **0.177** [0.156, 0.199] | 0.001 | **0.410** [0.400, 0.420] | 0.098 | **falsified** (IIA < 0.2) |
+| H1-ridge | ridge over all 508 4a channels | 0.105 [0.087, 0.123] | 0.000 | 0.248 | 0.106 | effect margin CI > 0 |
+| H2 curvature (line ↔ arc) | 4a curve family | 0.405 [0.371, 0.440] | 0.054 | 0.393 | 0.141 | effect margin CI > 0 |
+| H4 3a → 3b | 3b curve family | 0.058 [0.045, 0.071] | 0.005 | 0.324 | 0.169 | effect margin CI > 0 |
+
+Secondary verdicts after Holm correction are in `generated/results.md`.
+
+**Clean decoding** is near-perfect, so eligibility filtering hardly matters:
+- H1: 0.996 (4574 of 4608 pairs eligible).
+- Ridge and H2: 1.000.
+
+**Permutation p-values** are at their floor: 1/(M+1) = 0.0005 with 2000 sets and 0.002 with 500.
+
+**Robustness**, H1 rerun with 500 null sets each:
+
+| Run | IIA family | Effect family |
+|---|---|---|
+| jitter seed 3 | 0.172 | 0.410 |
+| jitter seed 4 | 0.171 | 0.407 |
+| Lucent default LRN | 0.172 | 0.406 |
+
+Every verdict is unchanged.
+
+![H1 null distributions](../figures/e2_h1_iia_null.png)
+![H1 effect vs nulls](../figures/e2_h1_effect_null.png)
+
+## Reference sets (H1)
+
+| Set | IIA | Effect |
+|---|---|---|
+| curve family (10) | 0.177 | 0.410 |
+| Fisher top-10 for θ (data-driven; Jaccard with family 0.25) | 0.028 | 0.242 |
+| complement (470) | 0.403 | 0.590 |
+| all 480 | 1.000 | 1.000 |
+| Δ-matched null (mean of 2000 sets) | 0.0001 | 0.053 |
+| branch-matched null (mean of 2000 sets) | 0.0000 | 0.037 |
+
+## Exploratory analyses (not pre-registered as tests)
+
+- **IIA by |Δθ|:**
+
+  | \|Δθ\| bin | IIA |
+  |---|---|
+  | 30–60° | 0.11 |
+  | 60–90° | 0.10 |
+  | 90–120° | 0.22 |
+  | 120–150° | 0.30 |
+  | 150–180° | 0.15 |
+
+  The Δ-null mean is ≤ 0.0006 in every bin.
+- **Dose-response over random K-subsets of the family.** The effect is almost exactly linear in K, about 0.04 per
+  unit:
+
+  | K | 1 | 2 | 3 | 5 | 7 | 10 |
+  |---|---|---|---|---|---|---|
+  | Effect | 0.040 | 0.080 | 0.119 | 0.202 | 0.285 | 0.410 |
+  | IIA | 0.000 | 0.001 | 0.002 | 0.013 | 0.045 | 0.177 |
+
+  IIA has a threshold shape: the decoder flips only once enough of the code has moved.
+- **Top-K channels by activation change Δ.**
+
+  | K | 10 | 20 | 40 | 80 | 160 |
+  |---|---|---|---|---|---|
+  | IIA | 0.10 | 0.36 | 0.44 | 0.79 | 0.98 |
+
+  All 10 family units lie in Δ percentiles 96.5–99.4, inside the top 17 channels. The family is a better
+  10-channel set than the top-10 by Δ (0.177 vs 0.103), but reaching IIA ≈ 0.8 needs about 80 channels.
+- **Mean ablation of the family.** The decoded base orientation survives in 0.806 of pairs. It survives in 0.985
+  under Δ-matched null ablations (q05 0.964) and in 0.553 under complement ablation. Removing the family disrupts
+  orientation decoding about 13× more often than removing matched channels (19.4% vs 1.5%).
+- **Same-orientation sham** (source = same θ, different jitter): base orientation retained in 0.999 of pairs. The
+  patch itself does not corrupt the readout.
+- **Closer to source than base:** 0.382 of pairs.
+- **Family-rotation (activation-space) swap.** Each curve unit receives the map of the unit k steps around the
+  orientation circle, with the base as donor.
+  - The decoded orientation shifts in the predicted direction for every k, but by only 21–39% of the predicted
+    angle. For example, k = 1 predicts −36° and observes −8°.
+  - k = 5 is the exception at 62%: the prediction is ±180° and the observed shift is −112°.
+  - 34–74% of pairs are unchanged.
+  - This matches partial mediation.
+- **H2 is asymmetric.**
+  - Line base with arc source: the 4a curve units read "arc" in 0.807 of pairs.
+  - Arc base with line source: they read "line" in only 0.003 of pairs.
+  - The family is enough to *add* curvature, but other channels also signal curvature, so removing the family's
+    curve evidence does not remove "arc".
+  - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359 and reaches only IIA 0.016.
+
+![dose-response](../figures/e2_h1_dose.png)
+![IIA by orientation difference](../figures/e2_h1_dtheta.png)
+
+## Interpretation
+1. **The strong sufficiency claim fails.** Copying the 10 curve units makes the next layer's curve units decode the
+   source orientation in only about 18% of pairs (10% under the whole-layer ridge readout). Under the pre-registered
+   rule, H1 is falsified, robustly across seeds and LRN variants.
+2. **The family is a highly specific causal mediator.**
+   - The best of 4000 matched control sets of 10 channels transfers orientation in 0.13% of pairs (null q95 ≤ 0.001).
+   - The family moves the 4a curve code 41% of the way to the source, versus a Δ-matched null q95 of 9.8%.
+   - It is 2% of `mixed3b`'s channels yet carries about 41% of the readout displacement. It beats the data-driven
+     Fisher top-10, and its ablation disrupts orientation about 13× more than matched ablations.
+3. **The orientation code is distributed and redundant.**
+   - The complement alone moves the readout 59% of the way, and about 80 channels are needed for reliable transfer.
+   - Effects are close to additive: family 0.410 + complement 0.590 = 1.000.
+   - Part of this additivity is structural. Six of the 14 readout units are 1×1-branch units, whose pre-ReLU output
+     is linear in the max-pooled `mixed3b` channels, so their effects add exactly.
+   - This fits Gorton's finding of extra curve features outside the 10 neurons
+     ([2024](https://arxiv.org/abs/2406.03662)).
+4. **Curvature, not just orientation, is carried.** H2 shows that inserting the family's arc activations into a line
+   image makes 4a read "arc" 81% of the time. This favours "curve detector" over "oriented line detector" for what
+   the family contributes downstream.
+5. **The Curve Circuits claim (3a → 3b) shows the same pattern, more weakly.** The effect is above the matched nulls
+   but IIA is only 0.058. The 3a family carries a small share of 3b's curve code: the complement reaches 0.757.
+
+## Learnings and issues during E2
+- **The pilot** (jitter seeds 0/100) already showed IIA ≈ 0.16 with null q95 ≈ 0.001. We kept the thresholds that
+  were fixed before the pilot and disclosed the pilot numbers in the pre-registration, rather than lowering the IIA
+  bar after seeing data.
+- **Speed.** Recomputing the full network for 4500 null sets × 4608 pairs was infeasible. Re-running only the
+  readout block on the 11×11 window made it possible: about 0.15 s per set with the decoder, with exactness proven
+  in fp64.
+- **GPU memory paging on the 8 GB WDDM GPU** made the first pilot crawl: CPU-bound, with CUDA spin-waits. py-spy
+  showed the process blocked on GPU synchronisation. Fixes: gather only the patched source channels, call
+  `empty_cache()` after full forward passes, and set the batch size to 64.
+- **Quick-mode seeds overlapped the confirmatory seeds** in the first smoke test. We offset them (+100) before any
+  E2 smoke run touched confirmatory data. One E1 smoke run on a selection-split subset is disclosed in the
+  pre-registration.
+- **Planned hypothesis H3 (locality) became unit tests.** For a single readout unit it is an architectural identity.
