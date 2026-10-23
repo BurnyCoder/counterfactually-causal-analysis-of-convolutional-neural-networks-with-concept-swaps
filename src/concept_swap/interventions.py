@@ -39,12 +39,13 @@ def collect(model, X: torch.Tensor, layer: str, device: str, batch: int = 256) -
         w = M.crop_window(a[PREV[layer]], layer)
         wins.append(w.cpu())
         outs.append(M.readout_from_window(model, layer, w).cpu())
+    torch.cuda.empty_cache()  # return the full-forward activation memory; on an 8 GB WDDM GPU it otherwise pages
     return Collected(torch.cat(wins), torch.cat(outs))
 
 
 @torch.no_grad()
 def patched_readouts(model, layer: str, windows: torch.Tensor, base: np.ndarray, src: np.ndarray, sets: list,
-                     out_idx: np.ndarray, reduce, batch: int = 2048, mode: str = "swap",
+                     out_idx: np.ndarray, reduce, batch: int = 512, mode: str = "swap",
                      mean: torch.Tensor | None = None, src_sets: list | None = None) -> np.ndarray:
     """For every channel set, patch it into each base window and return `reduce(readouts)` (stacked over sets).
 
@@ -53,6 +54,7 @@ def patched_readouts(model, layer: str, windows: torch.Tensor, base: np.ndarray,
     readouts: (n_pairs, len(out_idx)) pre-ReLU values of the readout unit; `reduce` maps them to per-pair outputs.
     """
     dev = next(model.parameters()).device
+    base, src = np.array(base), np.array(src)  # writable copies (pandas .values are read-only views)
     W = windows.to(dev)  # whole split's windows on the GPU (a few hundred MB)
     mean = None if mean is None else mean.to(dev)
     out_idx = torch.as_tensor(out_idx, device=dev)
@@ -62,9 +64,10 @@ def patched_readouts(model, layer: str, windows: torch.Tensor, base: np.ndarray,
         sch = ch if src_sets is None else torch.as_tensor(src_sets[k], dtype=torch.long, device=dev)
         R = []
         for i in range(0, len(base), batch):
-            x = W[torch.as_tensor(base[i:i + batch], device=dev)].clone()  # base windows
+            x = W[torch.as_tensor(base[i:i + batch], device=dev)]  # advanced indexing returns a copy of the base windows
             if len(ch):
-                x[:, ch] = W[torch.as_tensor(src[i:i + batch], device=dev)][:, sch] if mode == "swap" else mean[ch]
+                si = torch.as_tensor(src[i:i + batch], device=dev)[:, None]  # (b, 1) broadcasts against (k,) channels
+                x[:, ch] = W[si, sch] if mode == "swap" else mean[ch]  # gather only the patched source channels
             R.append(M.readout_from_window(model, layer, x)[:, out_idx])
         results.append(reduce(torch.cat(R).cpu().numpy()))
     return np.stack(results)
