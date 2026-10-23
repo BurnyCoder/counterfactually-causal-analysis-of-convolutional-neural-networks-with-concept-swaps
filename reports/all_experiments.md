@@ -69,14 +69,20 @@ Details live in the per-experiment reports, which this page does not repeat:
   - Effect denominator filter: the bottom 5% of pairs.
 
 ### Problems and fixes, in chronological order
-1. **Lucent's LRN constants are not TensorFlow's.** Fixed with a namespace shim, using constants from
-   [lucent#51](https://github.com/greentfrapp/lucent/pull/51). Sensitivity: the conclusions are unchanged.
+1. **Lucent's LRN constants are not TensorFlow's.**
+   - Fixed with a namespace shim.
+   - The TF-exact constants (window 11 = 2·depth_radius + 1) come from the discussion of
+     [lucent#51](https://github.com/greentfrapp/lucent/pull/51). The PR itself proposes size 10.
+   - Sensitivity: the conclusions are unchanged.
+   - Erratum: the frozen pre-registration says "per lucent#51". More precisely, the constants are per a comment in
+     that PR's discussion.
 2. **`torch-lucent` 0.1.8 on PyPI pins `kornia<=0.4.1`, and Lucent's `setup.py` breaks on Windows with cp1252.**
    Installed from git, with a uv `extra-build-variables` fix for `PYTHONUTF8`.
 3. **PIL draws arc strokes inward.** The first renderer was off by half a stroke width. A unit test caught it, and
    we fixed the bounding radius.
-4. **Cropped vs full forward differed by about 3e-3 in fp32.** We traced this to cuDNN choosing different
-   algorithms for different input sizes: the crop is exact in fp64 (about 1e-14). The test now checks fp64.
+4. **Cropped vs full forward differed by up to about 3e-3 in fp32,** about 1e-5 of the value range. We traced this
+   to cuDNN choosing different algorithms for different input sizes. In fp64 the crop is exact: a re-check measured
+   a difference of 0, and the test asserts ≤ 1e-9. The test now checks fp64.
 5. **The first pilot ran for over 15 minutes, CPU-bound.** py-spy showed the process blocked on GPU
    synchronisation, because the 8 GB WDDM GPU was paging. Fixes: gather only the patched channels, call
    `empty_cache()`, and use batch 64. Afterwards: 0.15 s per null set.
@@ -100,8 +106,9 @@ Details live in the per-experiment reports, which this page does not repeat:
 ### What did not work, or remains open
 - **Strict sufficiency of the 10 units.** No configuration reached IIA ≥ 0.5 short of patching more than 40
   channels.
-- **The family-rotation activation swap** (a J-lens/SAE-style concept swap within the family) shifts the decoded
-  orientation in the right direction, but by only 21–39% of the predicted angle.
+- **The family-rotation activation swap** shifts the decoded orientation in the right direction, but by only 21–39%
+  of the predicted angle (k = 5 aside). This is a channel reassignment within the family, inspired by the
+  concept-swap tests of Gurnee et al. 2026.
 - **Open:** whether SAE features ([Gorton 2024](https://arxiv.org/abs/2406.03662)) or a learned subspace
-  (distributed alignment search, [Geiger et al. 2023](https://arxiv.org/abs/2303.02536)) would form a
+  (distributed alignment search, [Geiger et al. 2024](https://arxiv.org/abs/2303.02536)) would form a
   *sufficient* orientation mediator with few dimensions.
