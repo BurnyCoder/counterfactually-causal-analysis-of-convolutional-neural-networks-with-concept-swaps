@@ -29,21 +29,28 @@ def compact(r: dict) -> dict:
     return dict(label=r["label"], iia=r["iia"], effect=r["effect"], n_eligible=r["n_eligible"], **{k: r[k] for k in keys})
 
 
-def ridge_output_effect(cfg: Config, ex: dict, rng, n_sets: int) -> dict:
+def cos_sin_effects(ex: dict, model, test, sets: list) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Patch `sets` into the eligible pairs of a ridge-readout experiment and work in the decoder's (cos, sin) output
+    space: returns projection numerators (n_sets, n_pairs), denominators |cs_source - cs_base|^2 (n_pairs,) and the
+    clean source's (cos, sin) (n_pairs, 2), so callers can form effects and decoded-angle IIA."""
+    rd, e, p = ex["readout"], ex["elig"], ex["pairs"]
+    cs = lambda R: rd.dec.m.predict(rd.z(R))  # (n, 2) predicted (cos, sin)
+    clean = cs(test.col.readout.numpy()[:, rd.out_idx])  # (cos, sin) predictions for every clean test stimulus
+    b, s = p.base.values[e], p.source.values[e]  # eligible pairs only
+    R = I.patched_readouts(model, "mixed4a", test.col.windows, b, s, sets, rd.out_idx, cs)  # (n_sets, n_pairs, 2)
+    cb, csrc = clean[b], clean[s]  # clean base / source (cos, sin)
+    return ((R - cb) * (csrc - cb)).sum(-1), ((csrc - cb) ** 2).sum(-1), R  # numerators, denominators, patched (cos, sin)
+
+
+def ridge_output_effect(cfg: Config, ex: dict, model, test, rng, n_sets: int) -> dict:
     """H1-ridge effect measured in the ridge decoder's (cos theta, sin theta) output space, i.e. on the decoded
     orientation itself, for the family vs rank-matched and decile-matched null sets (eligible pairs only)."""
-    rd, e, p = ex["readout"], ex["elig"], ex["pairs"]
     fam = list(ex["named"]["family"])
     sets = ([np.array(fam)] + list(Fm.rank_matched_sets(ex["delta"], fam, n_sets, rng))  # [family, rank nulls..., decile nulls...]
             + list(Fm.delta_matched_sets(ex["delta"], fam, n_sets, rng)))
-    cs = lambda R: rd.dec.m.predict(rd.z(R))  # (n, 2) predicted (cos, sin)
-    clean = ex["readout_clean_cs"]  # (cos, sin) predictions for every clean confirmatory stimulus
-    b, s = p.base.values[e], p.source.values[e]  # eligible pairs only
-    R = I.patched_readouts(ex["model"], "mixed4a", ex["windows"], b, s, sets, rd.out_idx, cs)  # (n_sets_total, n_pairs, 2)
-    cb, csrc = clean[b], clean[s]  # clean base / source (cos, sin)
-    num = ((R - cb) * (csrc - cb)).sum(-1)  # projection numerators per set and pair
-    den = ((csrc - cb) ** 2).sum(-1)  # squared base -> source distance per pair
+    num, den, _ = cos_sin_effects(ex, model, test, sets)
     eff = num.sum(1) / den.sum()  # ratio-of-sums effect per set
+    b, s = ex["pairs"].base.values[ex["elig"]], ex["pairs"].source.values[ex["elig"]]  # eligible pairs
     W = St.pigeonhole_weights(b, s, cfg.n_boot, rng)  # crossed bootstrap over base and source images
     eff_b = (W @ num.T) / (W @ den)[:, None]  # (B, n_sets_total) bootstrap effects
     res = {}
@@ -68,10 +75,7 @@ def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     exr = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam["mixed3b"], np.arange(508), rng, n // 2,
                                  kind="ridge", **RANK)
     res["H1_ridge_all4a"] = compact(summarize(cfg, exr, rng, "H1-ridge vs rank-matched null (z-space effect)"))
-    rd = exr["readout"]
-    # everything ridge_output_effect needs: the model, the test windows and the clean (cos, sin) predictions
-    exr |= dict(model=model, windows=test.col.windows, readout_clean_cs=rd.dec.m.predict(rd.z(test.col.readout.numpy()[:, rd.out_idx])))
-    res["H1_ridge_all4a"]["effect_in_cos_sin_space"] = ridge_output_effect(cfg, exr, rng, n // 2)
+    res["H1_ridge_all4a"]["effect_in_cos_sin_space"] = ridge_output_effect(cfg, exr, model, test, rng, n // 2)
     log.info("post-hoc H1-ridge (cos, sin)-space effect: %s", res["H1_ridge_all4a"]["effect_in_cos_sin_space"])
     del ex, exr  # free per-set outcome arrays before the next tests
     res["H2"] = compact(curvature(cfg, model, fam["mixed3b"], fam4a, rng, **RANK))  # same H2 code, stricter null

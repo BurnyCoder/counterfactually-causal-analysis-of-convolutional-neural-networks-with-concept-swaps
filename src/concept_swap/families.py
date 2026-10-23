@@ -84,8 +84,9 @@ def fisher_scores(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Per-feature Fisher score: between-class over within-class variance, sum_k n_k (mu_k-mu)^2 / sum_k n_k s_k^2.
 
     Local: Gu, Li & Han 2011 (https://arxiv.org/abs/1202.3725); used for neuron selection by Baeumel et al. 2025
-    (https://arxiv.org/abs/2508.02513). Global context: picks the data-driven "best" orientation neurons as an
-    upper-bound reference for the human (Circuits) explanation.
+    (https://arxiv.org/abs/2508.02513). Global context: picks observationally orientation-selective neurons (window
+    centre only) as a data-driven reference set; it is not an upper bound (the post-hoc audit adds a causal-effect
+    ranking, `phases/audit.py`).
     """
     mu = X.mean(0)  # overall mean per feature
     classes = np.unique(y)
