@@ -5,7 +5,7 @@
 - **Python 3.12** via `uv`. **torch:** 2.14.1+cu130. **Lucent:** pinned to commit
   `2ccc434d80097e58f53cb2a70c60f72902fe93af`.
 - Exact versions of every dependency are in `uv.lock`.
-- **Wall-clock:** E1 about 1 minute, E2 about 40 minutes, E3 about 20 minutes.
+- **Wall-clock (confirmatory run, `logs/20261023_171349.log`):** E1 25 s, E2 40 min, E3 16 min, 57 min in total.
 
 ## Determinism and seeds
 - **Stimuli are deterministic given the jitter seed.**

@@ -58,7 +58,8 @@ Full write-ups:
 - [`reports/all_experiments.md`](reports/all_experiments.md): story and learnings.
 - Per-experiment reports for [E1](reports/e1_replication.md), [E2](reports/e2_synthetic.md) and [E3](reports/e3_natural.md).
 - The paper: [`reports/paper/paper.pdf`](reports/paper/paper.pdf).
-- The per-pair data: Hugging Face dataset [BurnyCoder/inceptionv1-curve-concept-swaps](https://huggingface.co/datasets/BurnyCoder/inceptionv1-curve-concept-swaps).
+- The per-pair data: Hugging Face dataset [BurnyCoder/inceptionv1-curve-concept-swaps](https://huggingface.co/datasets/BurnyCoder/inceptionv1-curve-concept-swaps), in the collection [Counterfactual concept swaps in CNNs](https://huggingface.co/collections/BurnyCoder/counterfactual-concept-swaps-in-cnns-6adb89e08d92a1d8cb3e5583).
+  Rebuild it with `uv run python main.py --phase export`, then upload `hf_export/`.
 
 ![Summary of effects](figures/summary_effect.png)
 
@@ -132,7 +133,7 @@ uv run python main.py
 
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
 - `pytest` runs 27 tests. It downloads `inception5h.pth` (28 MB) on first use.
-- `--quick` is a smoke test of the whole pipeline, taking about 5 minutes. It uses separate seeds and writes to
+- `--quick` is a smoke test of the whole pipeline, taking a few minutes plus the one-time Imagenette download. It uses separate seeds and writes to
   `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
@@ -195,8 +196,3 @@ terminal.
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |
 | `docs/` | literature review, methodology rationale, architecture, reproducibility |
-
-## Citation and authorship
-Libor Burian, *Counterfactual concept swaps on InceptionV1 curve detectors* (2026), this repository. The code and
-paper were written by Claude Code (Anthropic) executing Libor Burian's research idea; human cleanup is in progress.
-The Circuits tuning data are © their authors (CC-BY 4.0).

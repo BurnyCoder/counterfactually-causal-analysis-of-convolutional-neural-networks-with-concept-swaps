@@ -45,7 +45,3 @@ over `eligible` rows. The dataset is reproducible with `uv run python main.py` f
   lists only the relative file names of the confirmatory images.
 - **Model weights.** These are the Lucid InceptionV1 weights via
   [ProGamerGov's conversion](https://github.com/ProGamerGov/pytorch-old-tensorflow-models).
-
-## Citation
-Libor Burian (2026). *Counterfactual concept swaps on InceptionV1 curve detectors.* GitHub repository above. Code and
-paper written by Claude Code (Anthropic) from the author's idea; human cleanup in progress.
