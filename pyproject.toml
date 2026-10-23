@@ -1,0 +1,54 @@
+# Project metadata for uv (https://docs.astral.sh/uv/concepts/projects/config/).
+# Global context: one installable package `concept_swap` (src layout) that runs counterfactual
+# interchange interventions ("concept swaps") on InceptionV1 curve-detector neurons.
+[project]
+name = "concept-swap"
+version = "0.1.0"
+description = "Counterfactual interchange interventions (concept swaps) that causally test the Circuits curve-detector explanation in InceptionV1"
+readme = "README.md"
+authors = [{ name = "Libor Burian", email = "burian.lib@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.0",
+    "pillow>=13.0.0",
+    "python-dotenv>=1.2.4",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+    "statsmodels>=0.15.0",
+    "torch>=2.14.1",
+    "torch-lucent>=0.1.7",
+    "torchvision>=0.29.1",
+    "tqdm>=4.70.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+# PyTorch CUDA 13.0 wheels (needed for the Blackwell RTX 5070, sm_120), following
+# https://docs.astral.sh/uv/guides/integration/pytorch/#using-a-pytorch-index
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+# Lucent (PyTorch port of Lucid) from its dev branch, pinned to a commit; the PyPI release pins kornia<=0.4.1.
+torch-lucent = { git = "https://github.com/greentfrapp/lucent", rev = "2ccc434d80097e58f53cb2a70c60f72902fe93af" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.uv]
+# Lucent's setup.py reads its README with the platform default encoding (cp1252 on Windows) and crashes;
+# force UTF-8 mode for that build only (https://docs.astral.sh/uv/reference/settings/#extra-build-variables).
+extra-build-variables = { torch-lucent = { PYTHONUTF8 = "1" } }
