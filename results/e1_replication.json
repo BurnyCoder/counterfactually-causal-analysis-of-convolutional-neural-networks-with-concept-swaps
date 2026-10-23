@@ -1,0 +1,277 @@
+{
+ "created": "2026-10-23T17:14:02",
+ "config": {
+  "device": "cuda",
+  "data_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\data",
+  "results_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\results",
+  "figures_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\figures",
+  "log_dir": "C:\\Users\\Happy\\Documents\\projects\\counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps\\logs",
+  "lrn_mode": "tf",
+  "n_theta": 72,
+  "radii": [
+   30,
+   45,
+   60,
+   80
+  ],
+  "widths": [
+   3,
+   5
+  ],
+  "arc_span_deg": 120.0,
+  "jitter_px": 2,
+  "pilot_seed": 0,
+  "selection_seed": 1,
+  "confirm_seed": 2,
+  "stability_seeds": [
+   3,
+   4
+  ],
+  "sources_per_base": 4,
+  "min_dtheta": 30,
+  "tol_deg": 10.0,
+  "n_null_sets": 2000,
+  "n_boot": 2000,
+  "batch_size": 64,
+  "imagenette_url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz",
+  "rotations": [
+   -90,
+   -45,
+   45,
+   90,
+   180
+  ],
+  "quick": false
+ },
+ "results": {
+  "alignment": {
+   "reflection": -1,
+   "shift_deg": 180.0,
+   "fit_layer": "mixed3a",
+   "fit_r": 0.9365891957119516
+  },
+  "mixed3a": {
+   "neurons": [
+    81,
+    104,
+    92,
+    145,
+    95,
+    163,
+    171,
+    71,
+    147,
+    189,
+    137
+   ],
+   "r": [
+    0.8951,
+    0.9267,
+    0.9457,
+    0.9261,
+    0.9379,
+    0.9812,
+    0.9249,
+    0.9388,
+    0.9481,
+    0.9257,
+    0.9522
+   ],
+   "mean_r": 0.9365891957119516,
+   "perm_null_mean": 0.025265110300843448,
+   "perm_null_q95": 0.23653130463144753,
+   "perm_p": 9.999000099990002e-05,
+   "pref_theta_ours": [
+    220.0,
+    185.0,
+    165.0,
+    140.0,
+    105.0,
+    100.0,
+    10.0,
+    40.0,
+    320.0,
+    275.0,
+    255.0
+   ]
+  },
+  "mixed3b": {
+   "neurons": [
+    379,
+    406,
+    385,
+    343,
+    342,
+    388,
+    324,
+    340,
+    330,
+    349
+   ],
+   "r": [
+    0.9749,
+    0.9555,
+    0.9578,
+    0.9683,
+    0.9788,
+    0.9804,
+    0.9591,
+    0.9747,
+    0.9691,
+    0.9719
+   ],
+   "mean_r": 0.9690555029139702,
+   "perm_null_mean": 0.020647560318343625,
+   "perm_null_q95": 0.25411746007832525,
+   "perm_p": 9.999000099990002e-05,
+   "pref_theta_ours": [
+    290.0,
+    265.0,
+    240.0,
+    180.0,
+    150.0,
+    110.0,
+    95.0,
+    70.0,
+    40.0,
+    5.0
+   ]
+  },
+  "mixed4a": {
+   "neurons": [
+    26,
+    50,
+    58,
+    62,
+    95,
+    168,
+    403,
+    406,
+    407,
+    415,
+    424,
+    428,
+    436,
+    437
+   ],
+   "r": [
+    0.9605,
+    0.9836,
+    0.7386,
+    0.9803,
+    0.4394,
+    0.9572,
+    0.9699,
+    0.1666,
+    0.9738,
+    0.9756,
+    0.9426,
+    0.8509,
+    0.968,
+    0.9481
+   ],
+   "mean_r": 0.8467931738107513,
+   "perm_null_mean": 0.044151519900572346,
+   "perm_null_q95": 0.24242150727438588,
+   "perm_p": 9.999000099990002e-05,
+   "pref_theta_ours": [
+    170.0,
+    265.0,
+    20.0,
+    15.0,
+    145.0,
+    85.0,
+    175.0,
+    325.0,
+    320.0,
+    95.0,
+    265.0,
+    35.0,
+    40.0,
+    140.0
+   ]
+  },
+  "selectivity_3b": [
+   {
+    "neuron": 379,
+    "pref_theta": 290.0,
+    "auroc_vs_other_orient": 0.8813190479145978,
+    "auroc_vs_lines": 0.8074287280701753,
+    "mean_arc_pref": 273.4617614746094,
+    "mean_line": 38.87797546386719
+   },
+   {
+    "neuron": 406,
+    "pref_theta": 265.0,
+    "auroc_vs_other_orient": 0.7664473684210527,
+    "auroc_vs_lines": 0.7297177677266082,
+    "mean_arc_pref": 214.35906982421875,
+    "mean_line": 9.022382736206055
+   },
+   {
+    "neuron": 385,
+    "pref_theta": 240.0,
+    "auroc_vs_other_orient": 0.8673698175273088,
+    "auroc_vs_lines": 0.8116519325657896,
+    "mean_arc_pref": 269.425048828125,
+    "mean_line": 32.33114242553711
+   },
+   {
+    "neuron": 343,
+    "pref_theta": 180.0,
+    "auroc_vs_other_orient": 0.8997990628103278,
+    "auroc_vs_lines": 0.8924581962719299,
+    "mean_arc_pref": 389.86871337890625,
+    "mean_line": 2.754469871520996
+   },
+   {
+    "neuron": 342,
+    "pref_theta": 150.0,
+    "auroc_vs_other_orient": 0.9516276688182721,
+    "auroc_vs_lines": 0.8969783671418129,
+    "mean_arc_pref": 433.0970458984375,
+    "mean_line": 51.55037307739258
+   },
+   {
+    "neuron": 388,
+    "pref_theta": 110.0,
+    "auroc_vs_other_orient": 0.8651315789473684,
+    "auroc_vs_lines": 0.7823293585526315,
+    "mean_arc_pref": 352.3165588378906,
+    "mean_line": 57.93927764892578
+   },
+   {
+    "neuron": 324,
+    "pref_theta": 95.0,
+    "auroc_vs_other_orient": 0.7039473684210527,
+    "auroc_vs_lines": 0.6695106907894737,
+    "mean_arc_pref": 172.37628173828125,
+    "mean_line": 9.476898193359375
+   },
+   {
+    "neuron": 340,
+    "pref_theta": 70.0,
+    "auroc_vs_other_orient": 0.8385985600794441,
+    "auroc_vs_lines": 0.7739143594663743,
+    "mean_arc_pref": 388.6111755371094,
+    "mean_line": 47.58619689941406
+   },
+   {
+    "neuron": 330,
+    "pref_theta": 40.0,
+    "auroc_vs_other_orient": 0.9505822523584906,
+    "auroc_vs_lines": 0.8934233369883042,
+    "mean_arc_pref": 425.31573486328125,
+    "mean_line": 56.00523376464844
+   },
+   {
+    "neuron": 349,
+    "pref_theta": 5.0,
+    "auroc_vs_other_orient": 0.9255601415094339,
+    "auroc_vs_lines": 0.924547697368421,
+    "mean_arc_pref": 424.2789611816406,
+    "mean_line": 0.568893313407898
+   }
+  ]
+ }
+}
