@@ -117,6 +117,46 @@ def posthoc_section(ph: dict) -> tuple[list[str], dict]:
     return L, m
 
 
+def audit_section(a: dict) -> tuple[list[str], dict]:
+    """Markdown lines and LaTeX macros for results/posthoc_audit.json (post-hoc checks added by the independent audit)."""
+    er, rc, sh, ab, h2, rs = (a[k] for k in ("effect_ranked", "ridge_complement", "nuisance_sham", "mean_ablation_rank_null",
+                                             "H2_by_direction", "relevance_size_check"))
+    L = ["", "## Independent audit checks (NOT pre-registered; post-hoc, exploratory)", "",
+         f"Effect-ranked channels: all mixed3b channels ranked by single-channel patching effect on the selection split. Family ranks: "
+         f"{er['family_ranks']}; top-10 by effect: {er['top10_by_effect']} ({er['overlap_top10_family']} of 10 are family units).", "",
+         "| set (ranked on selection, scored on confirmatory H1 pairs) | IIA | effect | effect difference, family minus set [CI] |", "|---|---|---|---|"]
+    L += [f"| {n} | {_f(er['iia'][n])} | {_f(er['effect'][n])} | {_ci(er['effect_diff_ci'][n]) if n in er['effect_diff_ci'] else '—'} |" for n in er["iia"]]
+    L += ["", "| K (top channels by single-channel effect) | IIA |", "|---|---|"] + [f"| {k} | {_f(v)} |" for k, v in er["iia_topk_by_effect"].items()]
+    L += ["", f"- Ridge readout over all mixed4a channels, family vs complement (470 channels), {rc['n_pairs']} eligible pairs: effect in the "
+              f"decoder's (cos, sin) space {_f(rc['cos_sin_effect']['family'])} vs {_f(rc['cos_sin_effect']['complement'])}; decoded-angle IIA "
+              f"{_f(rc['iia']['family'])} vs {_f(rc['iia']['complement'])}"]
+    for d in ("line_to_arc", "arc_to_line"):  # H2 against each direction's own decile-matched null
+        r = h2[f"{d}_vs_delta_matched"]
+        L.append(f"- H2 {d.replace('_to_', '->')}: IIA family {_f(h2[f'iia_{d}'])} vs null mean {_f(r['null_iia_mean'])}, q95 {_f(r['null_iia_q95'])} "
+                 f"(p={r['iia_p']:.2g}); effect family {_f(r['effect_family'])} vs null q95 {_f(r['null_effect_q95'])} (p={r['effect_p']:.2g})")
+    L += [f"- Mean ablation vs rank-matched null (200 sets), base orientation retained: family {_f(ab['base_retained_family'])}, "
+          f"complement {_f(ab['base_retained_complement'])}, rank-null mean {_f(ab['base_retained_rank_null_mean'])} (q05 {_f(ab['base_retained_rank_null_q05'])})",
+          "- Cross-nuisance sham (source = same orientation, another radius / width / polarity), base orientation retained: "
+          + "; ".join(f"{f}: family {_f(v['family'])}, complement {_f(v['complement'])}, all {_f(v['all'])} (n {v['n']})" for f, v in sh.items()),
+          f"- Relevance null size check: family variance percentiles {[round(v, 2) for v in rs['family_var_percentiles']]}; family mean variance / "
+          f"matched-null mean variance = {_f(rs['family_over_null_ratio'], 2)}"]
+    la, al = h2["line_to_arc_vs_delta_matched"], h2["arc_to_line_vs_delta_matched"]
+    m = {"AuTopOverlap": str(er["overlap_top10_family"]), "AuFamRankMax": str(max(er["family_ranks"])),
+         "AuTopEff": _f(er["effect"]["top10_by_effect"]), "AuTopIIA": _f(er["iia"]["top10_by_effect"]),
+         "AuTopNFEff": _f(er["effect"]["top10_nonfamily_by_effect"]), "AuTopNFIIA": _f(er["iia"]["top10_nonfamily_by_effect"]),
+         "AuDiffNFLo": _f(er["effect_diff_ci"]["top10_nonfamily_by_effect"][0]), "AuDiffNFHi": _f(er["effect_diff_ci"]["top10_nonfamily_by_effect"][1]),
+         "AuRidgeFamCS": _f(rc["cos_sin_effect"]["family"]), "AuRidgeComplCS": _f(rc["cos_sin_effect"]["complement"]),
+         "AuRidgeFamIIA": _f(rc["iia"]["family"]), "AuRidgeComplIIA": _f(rc["iia"]["complement"]),
+         "AuLineArcNullMean": _f(la["null_iia_mean"]), "AuLineArcNullQ": _f(la["null_iia_q95"]), "AuLineArcP": f"{la['iia_p']:.2g}",
+         "AuLineArcEff": _f(la["effect_family"]), "AuLineArcEffNullQ": _f(la["null_effect_q95"]),
+         "AuArcLineEff": _f(al["effect_family"]), "AuArcLineEffNullQ": _f(al["null_effect_q95"]),
+         "AuAblRankNull": _f(ab["base_retained_rank_null_mean"]), "AuAblRankNullQ": _f(ab["base_retained_rank_null_q05"]),
+         "AuShamMin": _f(min(v["family"] for v in sh.values())), "AuRelVarRatio": _f(rs["family_over_null_ratio"], 2)}
+    words = {"10": "Ten", "20": "Twenty", "40": "Forty", "80": "Eighty", "160": "OneSixty"}  # digits are not allowed in macro names
+    m |= {f"AuTopK{words[k]}": _f(v) for k, v in er["iia_topk_by_effect"].items()}
+    return L, m
+
+
 def figures(cfg: Config, e2: dict, e3: dict) -> None:
     """All E2/E3 figures, drawn from the result JSONs (null distributions, |dtheta| bins, dose-response)."""
     nulls = lambda h, m: {"activation-change-matched null": h[f"null_{m}"]["delta_matched"],  # per-set null values
@@ -159,7 +199,8 @@ def run(cfg: Config) -> dict:
     L += ["## E1: replication of the published tuning curves", "",
           f"Orientation convention fitted on mixed3a only: reflection {e1['alignment']['reflection']}, shift {e1['alignment']['shift_deg']:.0f} deg.", "",
           "| layer | n units | mean r (ours vs published) | permutation-null mean | null q95 | p |", "|---|---|---|---|---|---|"]
-    L += [f"| {l} | {len(e1[l]['r'])} | {_f(e1[l]['mean_r'])} | {_f(e1[l]['perm_null_mean'])} | {_f(e1[l]['perm_null_q95'])} | {e1[l]['perm_p']:.2g} |"
+    fit = lambda l: " (fit layer: in-sample)" if l == e1["alignment"]["fit_layer"] else ""  # the convention was fitted on this layer
+    L += [f"| {l}{fit(l)} | {len(e1[l]['r'])} | {_f(e1[l]['mean_r'])} | {_f(e1[l]['perm_null_mean'])} | {_f(e1[l]['perm_null_q95'])} | {e1[l]['perm_p']:.2g} |"
           for l in ("mixed3a", "mixed3b", "mixed4a")]
     L += ["", "LRN sensitivity (Lucent's default LRN constants, same stimuli and convention), mean r: "
           + ", ".join(f"{l} {_f(v)}" for l, v in e1["lrn_lucent_mean_r"].items())]
@@ -212,6 +253,10 @@ def run(cfg: Config) -> dict:
         ph_lines, ph_macros = posthoc_section(load("posthoc_robustness"))
         L += ph_lines
         macros += "\n".join(f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in ph_macros.items()) + "\n"
+    if (cfg.results_dir / "posthoc_audit.json").exists():  # optional audit section (main.py --phase audit)
+        au_lines, au_macros = audit_section(load("posthoc_audit"))
+        L += au_lines
+        macros += "\n".join(f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in au_macros.items()) + "\n"
     out.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")  # LF on every OS
     (out.parent / ("numbers_quick.tex" if cfg.quick else "numbers.tex")).write_text(macros, encoding="utf-8", newline="\n")
     # summary figures: one row per test, IIA first, then the same rows with the continuous effect

@@ -8,7 +8,7 @@ Orientation convention fitted on mixed3a only: reflection -1, shift 180 deg.
 
 | layer | n units | mean r (ours vs published) | permutation-null mean | null q95 | p |
 |---|---|---|---|---|---|
-| mixed3a | 11 | 0.937 | 0.025 | 0.237 | 0.0001 |
+| mixed3a (fit layer: in-sample) | 11 | 0.937 | 0.025 | 0.237 | 0.0001 |
 | mixed3b | 10 | 0.969 | 0.021 | 0.254 | 0.0001 |
 | mixed4a | 14 | 0.847 | 0.044 | 0.242 | 0.0001 |
 
@@ -128,3 +128,28 @@ Rank-matched null: each curve unit is matched to one of its 10 nearest non-famil
 
 H1-ridge effect in the decoder's (cos, sin) output space: family 0.573 [0.564, 0.583]; rank-null q95 0.126 (p=0.002); decile-null q95 0.097 (p=0.002).
 H5-exact vs the decile-matched null: effect q95 0.079, margin [0.231, 0.281], p=0.001.
+
+## Independent audit checks (NOT pre-registered; post-hoc, exploratory)
+
+Effect-ranked channels: all mixed3b channels ranked by single-channel patching effect on the selection split. Family ranks: [1, 2, 3, 5, 6, 7, 8, 9, 10, 12]; top-10 by effect: [349, 388, 343, 380, 342, 340, 330, 385, 406, 324] (9 of 10 are family units).
+
+| set (ranked on selection, scored on confirmatory H1 pairs) | IIA | effect | effect difference, family minus set [CI] |
+|---|---|---|---|
+| family | 0.177 | 0.410 | — |
+| top10_by_effect | 0.168 | 0.420 | [-0.015, -0.005] |
+| top10_nonfamily_by_effect | 0.001 | 0.201 | [0.197, 0.221] |
+
+| K (top channels by single-channel effect) | IIA |
+|---|---|
+| 10 | 0.168 |
+| 20 | 0.485 |
+| 40 | 0.693 |
+| 80 | 0.809 |
+| 160 | 0.910 |
+
+- Ridge readout over all mixed4a channels, family vs complement (470 channels), 4608 eligible pairs: effect in the decoder's (cos, sin) space 0.573 vs 0.427; decoded-angle IIA 0.105 vs 0.019
+- H2 line->arc: IIA family 0.807 vs null mean 0.030, q95 0.114 (p=0.001); effect family 0.418 vs null q95 0.154 (p=0.001)
+- H2 arc->line: IIA family 0.003 vs null mean 0.000, q95 0.000 (p=0.001); effect family 0.367 vs null q95 0.130 (p=0.001)
+- Mean ablation vs rank-matched null (200 sets), base orientation retained: family 0.806, complement 0.553, rank-null mean 0.982 (q05 0.963)
+- Cross-nuisance sham (source = same orientation, another radius / width / polarity), base orientation retained: radius: family 0.992, complement 0.927, all 0.905 (n 1142); width: family 0.999, complement 0.975, all 0.969 (n 1142); polarity: family 0.998, complement 0.971, all 0.969 (n 1142)
+- Relevance null size check: family variance percentiles [0.94, 0.74, 0.88, 0.93, 0.9, 0.92, 0.83, 0.89, 0.89, 0.86]; family mean variance / matched-null mean variance = 0.96
