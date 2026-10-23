@@ -5,7 +5,14 @@
 - **Python 3.12** via `uv`. **torch:** 2.14.1+cu130. **Lucent:** pinned to commit
   `2ccc434d80097e58f53cb2a70c60f72902fe93af`.
 - Exact versions of every dependency are in `uv.lock`.
-- **Wall-clock (confirmatory run, `logs/20261023_171349.log`):** E1 25 s, E2 40 min, E3 16 min, 57 min in total.
+- **Wall-clock (confirmatory run, `logs/20261023_171349.log`):**
+  - start-up (model load) plus E1: 13 s;
+  - E2: 40.6 min;
+  - E3: 15.7 min;
+  - total: 56.5 min.
+- **Post-hoc phase** (`logs/20261023_184009.log`): 22.3 min.
+- **Provenance of `results/e1_replication.json`.** It was regenerated at 19:19 by a deterministic E1 rerun that adds
+  the Lucent-LRN check (`logs/20261023_191858.log`). Its other numbers are identical to the confirmatory log.
 
 ## Determinism and seeds
 - **Stimuli are deterministic given the jitter seed.**
@@ -22,10 +29,16 @@
 - **Null neuron sets and bootstraps** draw from one `numpy.random.default_rng(confirm_seed)` stream in a fixed
   phase order. Changing the order of analyses therefore changes which null sets are drawn, but not their
   distribution.
+  - A single phase (`--phase e2` or `--phase e3`) starts the stream fresh, so its null sets differ from those of the
+    full run.
+  - Only `uv run python main.py` reproduces the reported E2/E3 numbers exactly.
+  - E1 runs first, so it is reproduced either way.
 - **TF32 is disabled** (`torch.backends.cudnn.allow_tf32 = False`). cuDNN may still pick different fp32 convolution
   algorithms for different input sizes.
-  - We observed relative differences of about 1.3e-5 between full-map and cropped-window evaluation in fp32.
-  - The two are identical in fp64 (`tests/test_model.py::test_cropped_readout_equals_full_map`).
+  - In fp32, full-map and cropped-window evaluation differ by up to about 3e-3 absolute, about 1e-5 of the value
+    range.
+  - In fp64 they are identical. A re-check measured a difference of 0, and
+    `tests/test_model.py::test_cropped_readout_equals_full_map` asserts ≤ 1e-9.
   - Clean and patched readouts always use the same cropped code path.
 
 ## Data provenance

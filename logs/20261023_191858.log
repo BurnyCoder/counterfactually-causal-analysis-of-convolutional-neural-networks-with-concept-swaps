@@ -1,0 +1,11 @@
+2026-10-23 19:18:58,479 | INFO    | concept_swap.main | log file: logs/20261023_191858.log
+2026-10-23 19:18:58,480 | INFO    | concept_swap.main | config: {"device": "cuda", "data_dir": "data", "results_dir": "results", "figures_dir": "figures", "log_dir": "logs", "lrn_mode": "tf", "n_theta": 72, "radii": [30, 45, 60, 80], "widths": [3, 5], "arc_span_deg": 120.0, "jitter_px": 2, "pilot_seed": 0, "selection_seed": 1, "confirm_seed": 2, "stability_seeds": [3, 4], "sources_per_base": 4, "min_dtheta": 30, "tol_deg": 10.0, "n_null_sets": 2000, "n_boot": 2000, "batch_size": 64, "imagenette_url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz", "rotations": [-90, -45, 45, 90, 180], "quick": false}
+2026-10-23 19:19:09,387 | INFO    | concept_swap.phases.e1_replication | E1 orientation convention fitted on 3a: reflection=-1 shift=180 deg (mean r=0.937)
+2026-10-23 19:19:10,009 | INFO    | concept_swap.phases.e1_replication | E1 mixed3a: mean r with published tuning = 0.937 (label-permutation null mean 0.025, q95 0.237, p=0.0001)
+2026-10-23 19:19:10,589 | INFO    | concept_swap.phases.e1_replication | E1 mixed3b: mean r with published tuning = 0.969 (label-permutation null mean 0.021, q95 0.254, p=0.0001)
+2026-10-23 19:19:11,216 | INFO    | concept_swap.phases.e1_replication | E1 mixed4a: mean r with published tuning = 0.847 (label-permutation null mean 0.044, q95 0.242, p=0.0001)
+2026-10-23 19:19:11,294 | INFO    | concept_swap.phases.e1_replication | E1 3b AUROC vs other orientations: [0.881, 0.766, 0.867, 0.9, 0.952, 0.865, 0.704, 0.839, 0.951, 0.926]
+2026-10-23 19:19:11,294 | INFO    | concept_swap.phases.e1_replication | E1 3b AUROC vs straight lines:     [0.807, 0.73, 0.812, 0.892, 0.897, 0.782, 0.67, 0.774, 0.893, 0.925]
+2026-10-23 19:19:13,174 | INFO    | concept_swap.phases.e1_replication | E1 LRN sensitivity (Lucent default LRN), mean r per layer: {'mixed3a': 0.937, 'mixed3b': 0.969, 'mixed4a': 0.848}
+2026-10-23 19:19:14,367 | INFO    | concept_swap.phases.common | saved results/e1_replication.json
+2026-10-23 19:19:14,399 | INFO    | concept_swap.main | done

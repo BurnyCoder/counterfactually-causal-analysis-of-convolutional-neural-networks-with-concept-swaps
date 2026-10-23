@@ -145,7 +145,8 @@ def figures(cfg: Config, e2: dict, e3: dict) -> None:
 
 
 def run(cfg: Config) -> dict:
-    """Write reports/generated/results.md and figures/summary_effects.png from the result JSONs."""
+    """Write reports/generated/{results.md,numbers.tex}, figures/summary_{iia,effect}.png and the E2/E3 figures from the
+    result JSONs."""
     load = lambda n: json.loads((cfg.results_dir / f"{n}.json").read_text())["results"]  # payload without config
     e1, e2, e3 = load("e1_replication"), load("e2_synthetic"), load("e3_natural")
     hyp = {k: v for k, v in e2.items() if k.startswith("H")} | {"composited": e3["composited"], "H5": e3["H5"]}  # all tests
@@ -169,7 +170,8 @@ def run(cfg: Config) -> dict:
           "IIA = fraction of eligible pairs whose patched base decodes as the source; effect = normalized projection effect "
           "(0 = no change, 1 = source). Nulls: delta = activation-change-matched, branch = branch-matched. p = Phipson-Smyth "
           "permutation p vs the null sets. Verdict: H1 uses the pre-registered three-way rule; the others use the secondary criterion "
-          "(effect margin CI > 0 and Holm-adjusted p < 0.05).", "",
+          "(effect margin CI > 0 and Holm-adjusted p < 0.05). The `verdict` field inside results/*.json applies the H1 rule to "
+          "every test; for secondary tests use the verdicts in this table.", "",
           "| key | hypothesis | readout | clean acc | n elig. | IIA family [95% CI] | delta-null q95 | IIA margin [CI] | p | branch-null q95 | p (branch) "
           "| effect family [CI] | delta-null q95 | effect margin [CI] | p | branch-null q95 | verdict |", "|" + "---|" * 17]
     L += hypothesis_rows(hyp)

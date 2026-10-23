@@ -25,7 +25,7 @@ Every hypothesis, metric and threshold was pre-registered before the confirmator
 
 | Test | IIA family | Matched-null q95 | Effect family | Matched-null q95 | Verdict |
 |---|---|---|---|---|---|
-| E1: tuning vs published (3b / 4a) | r = 0.969 / 0.847 | 0.254 / 0.242 | — | — | replicated |
+| E1: tuning vs published (3b / 4a) | r = 0.969 / 0.847 | 0.254 / 0.242 (permutation) | — | — | replicated |
 | **H1 primary: 3b curve family → 4a curve units** | **0.177** [0.156, 0.199] | 0.001 | **0.410** [0.400, 0.420] | 0.098 | **falsified** (IIA < 0.2) |
 | H1-ridge: → all 508 `mixed4a` channels | 0.105 [0.087, 0.123] | 0.000 | 0.248 | 0.106 | supported* |
 | H2 curvature swap (line ↔ arc) | 0.405 [0.371, 0.440] | 0.054 | 0.393 | 0.141 | supported* |
@@ -34,7 +34,7 @@ Every hypothesis, metric and threshold was pre-registered before the confirmator
 | H5 natural rotation counterfactual | 0.072 [0.054, 0.091] | 0.000 | 0.287 | 0.075 | supported* |
 
 \* Secondary criterion: the effect margin over the activation-change-matched null has a CI above 0 and a
-Holm-adjusted p ≤ 0.004.
+Holm-adjusted p < 0.05 (all observed Holm-adjusted p ≤ 0.004).
 
 **Robustness.** Jitter seeds 3 and 4 give IIA 0.172 and 0.171; Lucent's default LRN gives 0.172. Every verdict is
 unchanged.
@@ -42,8 +42,8 @@ unchanged.
 **Post-hoc checks** (not pre-registered; [`reports/posthoc_robustness.md`](reports/posthoc_robustness.md)) leave
 every conclusion unchanged:
 - **A stricter rank-matched null:** the H1 effect is 0.410, against a null q95 of 0.121.
-- **The strongest competitor set** (the 10 non-family channels that change most) reaches only 0.125 and never
-  transfers the decoded orientation.
+- **The strongest competitor set** (the 10 non-family channels that change most) reaches only 0.125 and transfers
+  the decoded orientation in 1 of 4574 pairs.
 - **The H1-ridge effect**, as pre-registered, is measured over all 508 z-scored channels. In the decoded
   orientation's (cos, sin) space it is 0.573.
 - **Blur-free natural rotations** give a larger H5 effect: 0.336 vs 0.287.
@@ -74,8 +74,9 @@ Full write-ups:
 
 ## Methodology
 **Model.** Pretrained InceptionV1 (Lucid "inception5h") loaded with [Lucent](https://github.com/greentfrapp/lucent).
-- Its LRN layers are patched to the TensorFlow-exact constants
-  ([lucent#51](https://github.com/greentfrapp/lucent/pull/51)).
+- Its LRN layers are patched to the TensorFlow-exact constants. The window is 11 = 2·depth_radius + 1 under
+  [TF's LRN formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), as derived in
+  the discussion of [lucent#51](https://github.com/greentfrapp/lucent/pull/51).
 - Nothing is trained.
 
 **Explanation under test.**
@@ -140,14 +141,16 @@ uv run python main.py --quick
 uv run python main.py
 ```
 
+- Requires [uv](https://docs.astral.sh/uv/) ≥ 0.8.6, the first version with `extra-build-variables`.
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
 - `pytest` runs 31 tests. It downloads `inception5h.pth` (28 MB) on first use.
 - `--quick` is a smoke test of the whole pipeline, taking a few minutes plus the one-time Imagenette download. It uses separate seeds and writes to
   `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Two phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 25 min) and `--phase export` (Hugging Face folder). Later phases read earlier
-phases' results from `results/*.json`. The run is configured through `.env`; see `.env.example`. A CPU run works
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Two phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min) and `--phase export` (Hugging Face folder). Later phases read earlier
+phases' results from `results/*.json`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
+from the full run's. They are statistically equivalent, but only the full run reproduces the reported numbers exactly. The run is configured through `.env`; see `.env.example`. A CPU run works
 with `DEVICE=cpu` but is much slower. Windows notes are in [`docs/reproducibility.md`](docs/reproducibility.md).
 
 ## What happens when you run it

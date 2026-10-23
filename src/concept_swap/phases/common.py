@@ -156,7 +156,11 @@ def success(ex: dict, o: np.ndarray, target: str = "source") -> np.ndarray:
 
 def summarize(cfg: Config, ex: dict, rng: np.random.Generator, label: str) -> dict:
     """Pre-registered statistics: IIA and normalized effect of each named set, margins vs each null with pigeonhole
-    CIs and permutation p-values, and the three-way H1 verdict."""
+    CIs and permutation p-values, and the three-way H1 verdict.
+
+    `verdict` always applies the H1 rule (also to secondary tests, where it is informative only); the pre-registered
+    secondary verdicts (effect margin CI > 0 and Holm p < 0.05) are computed in `report_tables.run`.
+    """
     e, k = ex["elig"], ex["elig"] & ex["keep"]  # IIA uses eligible pairs; the effect also drops tiny denominators
     pairs = ex["pairs"]
     W = St.pigeonhole_weights(pairs.base.values[e], pairs.source.values[e], cfg.n_boot, rng)  # bootstrap weights (IIA)
@@ -178,11 +182,11 @@ def summarize(cfg: Config, ex: dict, rng: np.random.Generator, label: str) -> di
                                         p=St.perm_p(eff[0], eff[1:]), n_pairs=int(k.sum()), n_sets=int(len(nv)))
     first = next(iter(ex["nulls"]))  # primary null of this run (delta_matched in the pre-registered runs)
     d, br = out[f"iia_vs_{first}"], out.get("iia_vs_branch_matched", out[f"iia_vs_{first}"])
-    out["verdict"] = St.decide(d["rate"], d["null_q95"], d["margin_ci"], br["margin_ci"], **RULE)  # three-way H1 rule
+    out["verdict"] = St.decide(d["rate"], d["null_q95"], d["margin_ci"], br["margin_ci"], **RULE)  # H1 rule, every test
     out["null_iia"] = {n: success(ex, v)[:, e].mean(1).tolist() for n, v in ex["nulls"].items()}  # for histograms
     out["null_effect"] = {n: (v[:, k, 1].sum(1) / den_k.sum()).tolist() for n, v in ex["nulls"].items()}
     log.info("%s: IIA family %.3f [%.3f, %.3f] | %s-null q95 %.3f (p=%.2g) | other nulls q95 %s | "
-             "Fisher %.3f, complement %.3f, all %.3f, top-delta non-family %.3f | effect family %.3f vs %s-null q95 %.3f | verdict: %s",
+             "Fisher %.3f, complement %.3f, all %.3f, top-delta non-family %.3f | effect family %.3f vs %s-null q95 %.3f | H1-rule verdict: %s",
              label, d["rate"], *d["rate_ci"], first, d["null_q95"], d["p"],
              {k[7:]: round(v["null_q95"], 3) for k, v in out.items() if k.startswith("iia_vs_") and k != f"iia_vs_{first}"}, out["iia"]["fisher_topk"],
              out["iia"]["complement"], out["iia"]["all"], out["iia"]["top_delta_nonfamily"], out["effect"]["family"], first,

@@ -18,8 +18,9 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 6. **Selectivity of each 3b unit (AUROC):**
    - Positives: arcs within ±45° of the unit's preferred θ.
    - Negatives: (a) arcs at other orientations; (b) straight lines with the same lengths, widths and polarities.
-   - AUROC is one of the metrics that pass the sanity checks of
-     [Oikarinen et al. 2025](https://arxiv.org/abs/2506.05774).
+   - The gate metric, Pearson r, passes the neuron-explanation sanity checks of
+     [Oikarinen et al. 2025](https://arxiv.org/abs/2506.05774). AUROC fails their extra-labels test, so it is
+     reported only as a descriptive selectivity summary, not as evidence for the gate.
 
 ## Results
 - **Convention fitted on 3a:** reflection −1, shift 180° (r = 0.937 on 3a). The same convention also maximised the
@@ -28,8 +29,8 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
   possible with 10⁴ permutations.
   - Preferred orientations, in our convention, tile the circle in the published order: 379 → 290°, 406 → 265°,
     385 → 240°, 343 → 180°, 342 → 150°, 388 → 110°, 324 → 95°, 340 → 70°, 330 → 40°, 349 → 5°.
-- **mixed4a: mean r = 0.847** (null q95 0.242, p = 1·10⁻⁴). 12 of 14 units have r ≥ 0.74. The exceptions are
-  4a:406 (r = 0.17) and 4a:95 (r = 0.44).
+- **mixed4a: mean r = 0.847** (null q95 0.242, p = 1·10⁻⁴). 12 of 14 units have r ≥ 0.73; the lowest of
+  these is 4a:58 (r = 0.739). The exceptions are 4a:406 (r = 0.17) and 4a:95 (r = 0.44).
   - Cammarata et al. describe 4a:406 as detecting "tops of cups and pans viewed from an angle", which is an
     object-like unit, so a weak match to our clean arcs is plausible.
 - **3b selectivity:**
@@ -41,8 +42,11 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 ![E1 radial tuning](../figures/e1_radial_3b.png)
 ![E1 replication summary](../figures/e1_replication_summary.png)
 
-- **LRN sensitivity (planned):** with Lucent's default LRN constants instead of the TF-exact ones, the same
-  correlations are 0.937 (3a), 0.969 (3b) and 0.848 (4a). The LRN fix does not affect tuning-curve shape.
+- **LRN sensitivity:** with Lucent's default LRN constants instead of the TF-exact ones, the same correlations are
+  0.937 (3a), 0.969 (3b) and 0.848 (4a). The LRN fix does not affect tuning-curve shape.
+  - This check was in the approved plan but is not in the pre-registration.
+  - It was run after the confirmatory run, by rerunning E1 deterministically (`logs/20261023_191858.log`). The other
+    E1 numbers are identical to the confirmatory log.
 
 ## Interpretation
 - The port (Lucent and TF-exact LRN), the renderer and the readout positions reproduce the published tuning closely
@@ -57,9 +61,16 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
   - Our first renderer put the stroke's outer edge, not its centre line, on the RF centre (`test_stimuli.py` caught
     this: centre-pixel coverage 0.5).
   - Fix: draw on a circle of radius r + w/2.
-- **Lucent's LRN constants are not TF-exact.** We adopted the values from
-  [lucent#51](https://github.com/greentfrapp/lucent/pull/51), which its author verified against the original
-  graph. We shim them in rather than forking Lucent.
+- **Lucent's LRN constants are not TF-exact.**
+  - Lucent hard-codes size 9 and k = 1.
+  - The TF graph uses depth_radius = 5 and bias = 2. Under
+    [TF's formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), that means a
+    window of 11 and, for PyTorch, alpha × 11.
+  - [lucent#51](https://github.com/greentfrapp/lucent/pull/51) itself (open, unmerged) proposes size 10 and k = 2.
+    The size-11 values come from a comment in its discussion, which also reports a maximum error of about 6e-6
+    against the original graph.
+  - We shim these constants in rather than forking Lucent. The LRN-sensitivity run above shows that the choice does
+    not change the conclusions.
 - **Radii {30, 45, 60, 80}** were chosen on the pilot split (seed 0), where both 3b (r ≈ 0.96) and 4a (r ≈ 0.85)
   matched best. Radius 10 gave 3b r = 0.88 and 4a r = 0.61.
 - **Choosing the 3a layer for the convention fit** keeps the 3b and 4a correlations from being inflated by a fit on

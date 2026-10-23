@@ -65,10 +65,11 @@
   - The complement, which carries everything else that changed (texture, edges, colour layout), dominates at 85%.
   - This is expected: rotating a photo changes much more than curve orientation.
 - **End to end, the family is relevant to the network's decisions.** Ablating these 10 of 480 `mixed3b` channels
-  changes the 1008-way prediction about twice as often as ablating matched channels.
+  changes the 1008-way prediction about 1.8 times as often as ablating matched channels (17.2% vs 9.3%).
   - This is relevance, not orientation-specific evidence.
   - It agrees with the ablation-based relevance criteria of recent vision-unit work
-    ([ICML 2026](https://icml.cc/virtual/2026/79523); [Bau et al. 2020](https://doi.org/10.1073/pnas.1907375117)).
+    ([Aguilar Canto et al. 2026](https://icml.cc/virtual/2026/79523), ICML 2026 Mechanistic Interpretability
+    Workshop; [Bau et al. 2020](https://doi.org/10.1073/pnas.1907375117)).
 
 ## Learnings and issues
 - **Imagenette** was chosen over ImageNet because it downloads without a login (342 MB) and is the standard
