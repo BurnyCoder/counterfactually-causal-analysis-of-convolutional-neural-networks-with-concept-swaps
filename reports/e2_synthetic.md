@@ -123,7 +123,9 @@ Every verdict is unchanged.
     decoder, not the family. Measured along the line-to-arc direction, its boundary sits less than halfway from the
     line template: a 42% move flips most lines to "arc", but a 37% move leaves arcs on the arc side. Other channels
     also signal curvature, and that evidence stays in the arc base.
-  - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359 and reaches only IIA 0.016.
+  - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359
+    ([Early Vision](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves)) and reaches only
+    IIA 0.016.
 
 ![dose-response](../figures/e2_h1_dose.png)
 ![IIA by orientation difference](../figures/e2_h1_dtheta.png)
@@ -138,8 +140,12 @@ Every verdict is unchanged.
    - It is 2% of `mixed3b`'s channels yet carries about 41% of the readout displacement.
    - A causal, data-driven ranking recovers it (post-hoc audit). Ranking all 480 channels by single-channel
      patching effect on the selection split puts 9 of the 10 family units in the top 10. Unit 379 ranks 12th, and
-     channel 380 takes its place.
-   - That ranking uses the 14 curve readout units, which Curve Circuits describes as built from 3b curves. Under the
+     channel 380 takes its place. Channel 380 is itself a published curve-related unit: Early Vision lists 3b:359,
+     337 and 380 as its mixed3b
+     ["Double Curves" family](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves).
+   - That ranking uses the 14 curve readout units, which read `mixed3b` directly and plausibly use its curves
+     ([Curve Circuits](https://distill.pub/2020/circuits/curve-circuits/) shows 3b curves feeding 4a shape detectors
+     and notes 4a's curve detectors sit mostly in its 5×5 branch). Under the
      whole-layer ridge readout (third audit), 8 of the top 10 are family units; every family unit ranks within the
      top 24. The best 10 non-family channels there reach a (cos, sin) effect of 0.211, against the family's 0.573.
    - The 10 best *non-family* channels under that ranking reach effect 0.201 and IIA 0.001 on the confirmatory

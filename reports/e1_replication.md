@@ -70,7 +70,8 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
   - Fix: draw on a circle of radius r + w/2.
 - **Lucent's LRN constants are not TF-exact.**
   - Lucent hard-codes size 9 and k = 1.
-  - The TF graph uses depth_radius = 5 and bias = 2. Under
+  - The TF graph uses depth_radius = 5 and bias = 2 (the LRN node dump in the description of
+    [lucent#51](https://github.com/greentfrapp/lucent/pull/51)). Under
     [TF's formula](https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization), that means a
     window of 11 and, for PyTorch, alpha × 11.
   - [lucent#51](https://github.com/greentfrapp/lucent/pull/51) itself (open, unmerged) proposes size 10 and k = 2.

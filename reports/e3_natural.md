@@ -2,7 +2,8 @@
 
 **Question.** Does the curve family's causal role, as measured in E2, hold up under natural image statistics?
 
-**Data.** The Imagenette-320 validation set: 3925 images, split by seed into a 1963-image selection half and a
+**Data.** The Imagenette-320 validation set: 3925 images
+([TFDS catalog](https://www.tensorflow.org/datasets/catalog/imagenette)), split by seed into a 1963-image selection half and a
 1962-image confirmatory half. Numbers are from `results/e3_natural.json`, tabulated in
 [`generated/results.md`](generated/results.md).
 
