@@ -12,6 +12,8 @@ Orientation convention fitted on mixed3a only: reflection -1, shift 180 deg.
 | mixed3b | 10 | 0.969 | 0.021 | 0.254 | 0.0001 |
 | mixed4a | 14 | 0.847 | 0.044 | 0.242 | 0.0001 |
 
+LRN sensitivity (Lucent's default LRN constants, same stimuli and convention), mean r: mixed3a 0.937, mixed3b 0.969, mixed4a 0.848
+
 | 3b unit | r | preferred theta (ours, deg) | AUROC vs other orientations | AUROC vs straight lines |
 |---|---|---|---|---|
 | 379 | 0.975 | 290 | 0.881 | 0.807 |
