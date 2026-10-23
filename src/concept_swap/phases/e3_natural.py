@@ -73,28 +73,43 @@ def rotation_split(cfg: Config, model, paths: list, square: bool = False) -> tup
     return sp, pairs
 
 
-def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths: list, square: bool = False, **kw) -> dict:
-    """H5: natural rotation counterfactual on curve-present crops (+ exploratory curve-absent contrast)."""
+def pick(paths: list, mask) -> list:
+    """The paths where `mask` is True."""
+    return [p for p, k in zip(paths, mask) if k]
+
+
+def nearest_version(sp: Split, z: R.ZScore, fam4a) -> Readout:
+    """Nearest-version decoder: templates are each photo's own clean versions (cell = photo, label = angle)."""
+    return Readout(np.asarray(fam4a), z, R.TemplateDecoder().fit(z(sp.col.readout.numpy()[:, fam4a]), sp.grid.theta.values,
+                                                                  sp.grid.cell.values), "template")
+
+
+def rotation_experiment(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths: list, square: bool = False,
+                        **kw) -> dict:
+    """H5 setup on curve-present crops: selection-half threshold, rotation splits, z statistics and the interchange
+    experiment. Returns it with the scores, threshold and z that the curve-absent contrast needs. Shared by `rotation`
+    and the post-hoc blur check (`phases/audit2.py`)."""
     s_sel, s_test = family_score(cfg, model, sel_paths, fam3b), family_score(cfg, model, test_paths, fam3b)
-    thr, low = np.quantile(s_sel, 0.75), np.quantile(s_sel, 0.25)  # thresholds from the selection half only
-    pick = lambda ps, m: [p for p, k in zip(ps, m) if k]  # paths where mask m is True
+    thr = np.quantile(s_sel, 0.75)  # curve-present threshold from the selection half only
     sel, p_sel = rotation_split(cfg, model, pick(sel_paths, s_sel > thr), square)
     test, p_test = rotation_split(cfg, model, pick(test_paths, s_test > thr), square)
     z = R.ZScore().fit(sel.col.readout.numpy()[:, fam4a])  # z statistics from the selection half only
-
-    def readout_for(sp):
-        """Nearest-version decoder: templates are each photo's own clean versions (cell = photo, label = angle)."""
-        return Readout(np.asarray(fam4a), z, R.TemplateDecoder().fit(z(sp.col.readout.numpy()[:, fam4a]), sp.grid.theta.values,
-                                                                      sp.grid.cell.values), "template")
-
     ex = interchange_experiment(cfg, model, "mixed4a", sel, test, p_test, p_sel, fam3b, fam4a, rng, cfg.n_null_sets // 2,
-                                readout=readout_for(test), **kw)
+                                readout=nearest_version(test, z, fam4a), **kw)
+    return dict(ex=ex, test=test, thr=thr, s_sel=s_sel, s_test=s_test, z=z)
+
+
+def rotation(cfg: Config, model, fam3b, fam4a, rng, sel_paths: list, test_paths: list, square: bool = False, **kw) -> dict:
+    """H5: natural rotation counterfactual on curve-present crops (+ exploratory curve-absent contrast)."""
+    r = rotation_experiment(cfg, model, fam3b, fam4a, rng, sel_paths, test_paths, square, **kw)
+    ex, z, p_test = r["ex"], r["z"], r["ex"]["pairs"]
     out = summarize(cfg, ex, rng, "H5: natural rotation counterfactual (curve-present Imagenette crops)")
-    out.update(threshold=float(thr), n_images_test=int(len(test.grid) // (1 + len(cfg.rotations))),
+    out.update(threshold=float(r["thr"]), n_images_test=int(len(r["test"].grid) // (1 + len(cfg.rotations))),
                iia_by_angle={str(a): float(((np.abs(S.circ_diff(ex["outs"]["family"][:, 0], ex["clean"][p_test.source.values])) <= cfg.tol_deg)
                                              [ex["elig"] & (p_test.dtheta.values == a)]).mean()) for a in cfg.rotations})
-    absent, p_abs = rotation_split(cfg, model, pick(test_paths, s_test <= low), square)  # many crops score exactly 0 (ReLU)
-    rd = readout_for(absent)
+    low = np.quantile(r["s_sel"], 0.25)  # curve-absent threshold, also from the selection half
+    absent, p_abs = rotation_split(cfg, model, pick(test_paths, r["s_test"] <= low), square)  # many crops score exactly 0 (ReLU)
+    rd = nearest_version(absent, z, fam4a)
     zb, zs = (z(absent.col.readout.numpy()[i][:, fam4a]) for i in (p_abs.base.values, p_abs.source.values))
     o = I.patched_readouts(model, "mixed4a", absent.col.windows, p_abs.base.values, p_abs.source.values, [fam3b], fam4a,
                            lambda Rr: np.c_[rd.predict_z(z(Rr), absent.grid.cell.values[p_abs.base.values]), ((z(Rr) - zb) * (zs - zb)).sum(1)])[0]

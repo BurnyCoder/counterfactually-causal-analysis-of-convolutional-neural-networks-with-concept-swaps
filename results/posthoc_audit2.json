@@ -1,0 +1,203 @@
+{
+ "created": "2026-10-23T23:12:07",
+ "config": {
+  "device": "cuda",
+  "data_dir": "data",
+  "results_dir": "results",
+  "figures_dir": "figures",
+  "log_dir": "logs",
+  "lrn_mode": "tf",
+  "n_theta": 72,
+  "radii": [
+   30,
+   45,
+   60,
+   80
+  ],
+  "widths": [
+   3,
+   5
+  ],
+  "arc_span_deg": 120.0,
+  "jitter_px": 2,
+  "pilot_seed": 0,
+  "selection_seed": 1,
+  "confirm_seed": 2,
+  "stability_seeds": [
+   3,
+   4
+  ],
+  "sources_per_base": 4,
+  "min_dtheta": 30,
+  "tol_deg": 10.0,
+  "n_null_sets": 2000,
+  "n_boot": 2000,
+  "batch_size": 64,
+  "imagenette_url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz",
+  "rotations": [
+   -90,
+   -45,
+   45,
+   90,
+   180
+  ],
+  "quick": false
+ },
+ "results": {
+  "ridge_effect_ranked": {
+   "family_ranks": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    10,
+    11,
+    24
+   ],
+   "top10_by_effect": [
+    379,
+    388,
+    342,
+    330,
+    340,
+    385,
+    349,
+    359,
+    357,
+    406
+   ],
+   "top10_nonfamily_by_effect": [
+    359,
+    357,
+    367,
+    402,
+    380,
+    337,
+    368,
+    346,
+    350,
+    354
+   ],
+   "overlap_top10_family": 8,
+   "effect": {
+    "family": 0.5728827118873596,
+    "top10_by_effect": 0.5962401032447815,
+    "top10_nonfamily_by_effect": 0.21109825372695923
+   },
+   "iia": {
+    "family": 0.10460069444444445,
+    "top10_by_effect": 0.12890625,
+    "top10_nonfamily_by_effect": 0.0032552083333333335
+   },
+   "effect_diff_ci": {
+    "top10_by_effect": [
+     -0.028136759027053582,
+     -0.018468970097279682
+    ],
+    "top10_nonfamily_by_effect": [
+     0.35000901861231304,
+     0.3741010526016931
+    ]
+   },
+   "n_pairs": 4608
+  },
+  "additivity_by_branch": {
+   "1x1": {
+    "n_channels": 192,
+    "nonadditivity": 1.973907826470847e-13,
+    "effect_family": 0.2743215560913086,
+    "effect_complement": 0.7256785035133362
+   },
+   "3x3": {
+    "n_channels": 204,
+    "nonadditivity": 0.09486494213342667,
+    "effect_family": 0.24564847350120544,
+    "effect_complement": 0.7544723749160767
+   },
+   "5x5": {
+    "n_channels": 48,
+    "nonadditivity": 0.07043982297182083,
+    "effect_family": 0.2255803644657135,
+    "effect_complement": 0.7754978537559509
+   },
+   "pool_reduce": {
+    "n_channels": 64,
+    "nonadditivity": 3.3992218219890125e-13,
+    "effect_family": 0.16619591414928436,
+    "effect_complement": 0.8338041305541992
+   },
+   "curve_units_1x1": {
+    "n_channels": 6,
+    "nonadditivity": 1.1584842514542754e-13,
+    "effect_family": 0.5613445043563843,
+    "effect_complement": 0.4386554956436157
+   },
+   "curve_units_5x5": {
+    "n_channels": 8,
+    "nonadditivity": 0.017622770741581917,
+    "effect_family": 0.314810574054718,
+    "effect_complement": 0.6858082413673401
+   },
+   "curve_units_all": {
+    "n_channels": 14,
+    "nonadditivity": 0.010769089683890343,
+    "effect_family": 0.41069021821022034,
+    "effect_complement": 0.5896879434585571
+   },
+   "n_pairs": 4608
+  },
+  "h5_blur_matched": {
+   "original": {
+    "effect": 0.3353983583724163,
+    "iia": 0.1080368906455863,
+    "by_angle": {
+     "-90": {
+      "effect": 0.3220399293958542,
+      "iia": 0.08498023715415019
+     },
+     "90": {
+      "effect": 0.32418408506221935,
+      "iia": 0.11462450592885376
+     },
+     "180": {
+      "effect": 0.35566834727208907,
+      "iia": 0.12450592885375494
+     }
+    }
+   },
+   "exact": {
+    "effect": 0.3355009188890847,
+    "iia": 0.1080368906455863,
+    "by_angle": {
+     "-90": {
+      "effect": 0.3220257750940844,
+      "iia": 0.08695652173913043
+     },
+     "90": {
+      "effect": 0.32350946430790717,
+      "iia": 0.11462450592885376
+     },
+     "180": {
+      "effect": 0.3565675029686782,
+      "iia": 0.1225296442687747
+     }
+    }
+   },
+   "effect_diff": 0.00010256051666834853,
+   "effect_diff_ci": [
+    -0.0006281975580464212,
+    0.0008938934036718325
+   ],
+   "n_images": 506,
+   "n_pairs": 1518,
+   "angles": [
+    -90,
+    90,
+    180
+   ]
+  }
+ }
+}

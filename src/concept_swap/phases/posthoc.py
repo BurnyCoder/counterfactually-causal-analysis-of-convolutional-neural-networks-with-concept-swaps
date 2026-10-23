@@ -42,6 +42,14 @@ def cos_sin_effects(ex: dict, model, test, sets: list) -> tuple[np.ndarray, np.n
     return ((R - cb) * (csrc - cb)).sum(-1), ((csrc - cb) ** 2).sum(-1), R  # numerators, denominators, patched (cos, sin)
 
 
+def decoded_iia(ex: dict, R: np.ndarray, tol: float) -> np.ndarray:
+    """Decoded-angle IIA per set from patched (cos, sin) outputs R (n_sets, n_eligible_pairs, 2) of `cos_sin_effects`:
+    the share of eligible pairs whose atan2 angle lies within `tol` degrees of the clean source's decoded angle."""
+    ang = np.degrees(np.arctan2(R[..., 1], R[..., 0])) % 360  # decoded angle of each patched base
+    src = ex["clean"][ex["pairs"].source.values[ex["elig"]]]  # decoded clean source angle (eligible pairs)
+    return (np.abs(S.circ_diff(ang, src)) <= tol).mean(-1)
+
+
 def ridge_output_effect(cfg: Config, ex: dict, model, test, rng, n_sets: int) -> dict:
     """H1-ridge effect measured in the ridge decoder's (cos theta, sin theta) output space, i.e. on the decoded
     orientation itself, for the family vs rank-matched and decile-matched null sets (eligible pairs only)."""

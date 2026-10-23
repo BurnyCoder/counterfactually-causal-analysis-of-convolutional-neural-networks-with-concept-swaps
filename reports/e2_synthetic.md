@@ -106,10 +106,11 @@ Every verdict is unchanged.
 - **Closer to source than base:** 0.382 of pairs.
 - **Family-rotation (activation-space) swap.** Each curve unit receives the map of the unit k steps around the
   orientation circle, with the base as donor.
-  - The decoded orientation shifts in the predicted direction for every k, but by only 21–39% of the predicted
+  - The circular-mean shift points in the predicted direction for every k but reaches only 21–39% of the predicted
     angle. For example, k = 1 predicts −36° and observes −8°.
   - k = 5 is the exception at 62%: the prediction is ±180° and the observed shift is −112°.
-  - 34–74% of pairs are unchanged.
+  - The mean mixes outcomes rather than describing a uniform partial shift: 34–74% of pairs keep their decoded
+    orientation, and 10–50% land within 30° of the predicted shift.
   - This matches partial mediation.
 - **H2 is asymmetric.**
   - Line base with arc source: the 4a curve units read "arc" in 0.807 of pairs.
@@ -118,8 +119,10 @@ Every verdict is unchanged.
     - line → arc: null IIA mean 0.030, q95 0.114 (p = 0.001); effect 0.418 vs null q95 0.154.
     - arc → line: the effect is 0.367 vs null q95 0.130 (p = 0.001), although the decision flips almost never.
   - The decision is binary (line vs arc template), a lower bar than H1's 72-way decode.
-  - The family's curvature evidence counts in both directions, but other channels also signal curvature, so
-    removing the family's evidence does not flip "arc" to "line".
+  - The continuous effects are nearly symmetric (0.418 vs 0.367), so the IIA asymmetry comes from the correlation
+    decoder, not the family. Measured along the line-to-arc direction, its boundary sits less than halfway from the
+    line template: a 42% move flips most lines to "arc", but a 37% move leaves arcs on the arc side. Other channels
+    also signal curvature, and that evidence stays in the arc base.
   - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359 and reaches only IIA 0.016.
 
 ![dose-response](../figures/e2_h1_dose.png)
@@ -136,6 +139,9 @@ Every verdict is unchanged.
    - A causal, data-driven ranking recovers it (post-hoc audit). Ranking all 480 channels by single-channel
      patching effect on the selection split puts 9 of the 10 family units in the top 10. Unit 379 ranks 12th, and
      channel 380 takes its place.
+   - That ranking uses the 14 curve readout units, which Curve Circuits describes as built from 3b curves. Under the
+     whole-layer ridge readout (third audit), 8 of the top 10 are family units; every family unit ranks within the
+     top 24. The best 10 non-family channels there reach a (cos, sin) effect of 0.211, against the family's 0.573.
    - The 10 best *non-family* channels under that ranking reach effect 0.201 and IIA 0.001 on the confirmatory
      pairs. The family's margin over them is 0.209, CI [0.197, 0.221].
    - The observational Fisher top-10 (window centre only) is a much weaker competitor (IIA 0.028).
@@ -154,17 +160,21 @@ Every verdict is unchanged.
      readout.
    - Effects are close to additive: family 0.410 + complement 0.590 = 1.000, and 0.573 + 0.427 = 1.000 in ridge
      output space.
-   - This additivity is largely structural:
-     - `maxpool4` acts per channel.
-     - Six of the 14 readout units are 1×1-branch units, whose pre-ReLU output is linear in the max-pooled
-       `mixed3b` channels, so their effects add exactly.
-     - The ridge decoder is linear.
-     - It is not evidence about how the code is organised.
+   - This additivity is partly structural and partly empirical (third audit):
+     - `maxpool4` acts per channel. In the 1×1 and pool branches of `mixed4a`, a linear 1×1 convolution follows.
+       Effects there add exactly (non-additivity about 10⁻¹³). This covers 6 of the 14 readout units.
+     - The 3×3 and 5×5 branches mix channels in a 1×1 bottleneck before a ReLU, so they are not additive by
+       construction.
+     - On these stimuli, swapping the family and the complement adds up to within 9.5% (3×3 branch) and 7.0%
+       (5×5 branch), in squared norm. For the 8 readout units in the 5×5 branch it is within 1.8%.
+     - The ridge decoder is linear, but half of its 508 inputs come from the non-additive branches.
    - This fits Gorton's finding of extra curve features outside the 10 neurons
      ([2024](https://arxiv.org/abs/2406.03662)).
 4. **Curvature, not just orientation, is carried.** H2 shows that inserting the family's arc activations into a line
    image makes 4a read "arc" 81% of the time. Matched control sets do so in 3.0% on average (q95 11.4%). This
-   favours "curve detector" over "oriented line detector" for what the family contributes downstream.
+   favours "curve detector" over "oriented line detector" for what the family contributes downstream. The 81% vs
+   0.3% split between directions is a decoder property; the family's effects in the two directions are 0.418 and
+   0.367.
 5. **The Curve Circuits claim (3a → 3b) shows the same pattern, more weakly.** The effect is above the matched nulls
    but IIA is only 0.058. The 3a family carries a small share of 3b's curve code: the complement reaches 0.757.
 

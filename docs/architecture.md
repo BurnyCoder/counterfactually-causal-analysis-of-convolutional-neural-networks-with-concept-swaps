@@ -4,8 +4,8 @@
 - E1, E2 and E3 each write `results/<phase>.json`; E1 also draws its figures.
 - `hero` writes the README figure and GIF.
 - `report` writes the generated tables, LaTeX macros and the E2/E3/summary figures from the JSONs.
-- `posthoc`, `audit` and `export` run only when named. They write `results/posthoc_robustness.json`,
-  `results/posthoc_audit.json` and `hf_export/`.
+- `posthoc`, `audit`, `audit2` and `export` run only when named. They write `results/posthoc_robustness.json`,
+  `results/posthoc_audit.json`, `results/posthoc_audit2.json` and `hf_export/`.
 - Library modules hold no experiment logic.
 
 ```mermaid
@@ -21,11 +21,16 @@ graph TD
   MAIN --> HERO[phases/hero.py<br/>README figure + GIF]
   MAIN -.->|only when named| PH[phases/posthoc.py<br/>rank-matched null, exact rotations]
   MAIN -.->|only when named| AU[phases/audit.py<br/>effect-ranked competitor, ridge complement,<br/>H2 per direction, nuisance sham]
+  MAIN -.->|only when named| AU2[phases/audit2.py<br/>ridge-readout causal ranking,<br/>additivity by 4a branch, H5 blur on matched angles]
   MAIN -.->|only when named| EXP[phases/export_hf.py<br/>hf_export/]
   AU --> COMMON
   AU --> PH
   AU --> E2
   AU --> E3
+  AU2 --> COMMON
+  AU2 --> AU
+  AU2 --> PH
+  AU2 --> E3
   PH --> COMMON
   PH --> E2
   PH --> E3
@@ -56,6 +61,8 @@ graph TD
   R4 --> REP
   AU --> R5[(results/posthoc_audit.json)]
   R5 --> REP
+  AU2 --> R6[(results/posthoc_audit2.json)]
+  R6 --> REP
   REP --> MD[(reports/generated/results.md<br/>numbers.tex)]
 ```
 

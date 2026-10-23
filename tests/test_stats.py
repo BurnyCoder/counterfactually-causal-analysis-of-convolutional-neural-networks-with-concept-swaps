@@ -11,6 +11,17 @@ def test_pigeonhole_weights_are_products_of_counts():
     assert W.shape == (200, 4) and np.allclose(W.mean(0), 1, atol=0.25)  # E[count]=1 for each factor
 
 
+def test_cluster_weights_share_one_count_per_cluster():
+    """Every element of a cluster gets that cluster's draw count, and the counts of the distinct clusters sum to their
+    number; the pigeonhole weights are the product of a base and a source cluster draw (same RNG order)."""
+    ids = np.array([0, 0, 1, 2, 2, 2])
+    W = St.cluster_weights(ids, B=100, rng=np.random.default_rng(0))
+    assert (W[:, 0] == W[:, 1]).all() and (W[:, 3] == W[:, 5]).all() and (W[:, [0, 2, 3]].sum(1) == 3).all()
+    base, src, rng = np.array([0, 0, 1, 2]), np.array([3, 4, 3, 5]), np.random.default_rng(1)
+    expected = St.cluster_weights(base, 50, rng) * St.cluster_weights(src, 50, rng)
+    np.testing.assert_array_equal(St.pigeonhole_weights(base, src, 50, np.random.default_rng(1)), expected)
+
+
 def test_bootstrap_ci_covers_true_rate_for_independent_pairs():
     rng = np.random.default_rng(0)
     succ = rng.random(4000) < 0.3

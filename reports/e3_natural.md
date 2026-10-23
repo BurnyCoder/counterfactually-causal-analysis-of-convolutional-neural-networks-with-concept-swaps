@@ -55,9 +55,14 @@
 
 **Caveats, checked post-hoc** (see [`posthoc_robustness.md`](posthoc_robustness.md)):
 - **H5's clean accuracy (1.000) is automatic,** because each photo's own clean versions are its templates.
-- **The ±45° rotations add interpolation blur that the 0° base lacks.** Repeating H5 with blur-free rotations
-  (square crops, exact −90/90/180° transposes) *increases* the family's effect to 0.336 (null q95 0.077) and IIA to
-  0.108. Blur did not create the effect.
+- **Interpolation blur does not matter.** PIL rotates ±45°, and ±90° on non-square images, bilinearly, while the 0°
+  base and the 180° rotation are exact.
+  - Repeating H5 on square crops with exact −90/90/180° transposes gives effect 0.336 (null q95 0.077) and IIA 0.108.
+  - On the same three angles, the original rotations give 0.335 and 0.108: the difference is 0.000,
+    CI [−0.001, 0.001] (third audit).
+  - The lower pre-registered numbers (0.287, 0.072) come from the ±45° rotations, where the family transfers least.
+    They also come from the two extra templates per photo, not from blur.
+  - At ±45° blur cannot be removed, because no rotation by 45° is exact.
 - **The composited test reuses the same 32 backgrounds in both splits,** so it generalises across jitter only.
 
 ## Interpretation

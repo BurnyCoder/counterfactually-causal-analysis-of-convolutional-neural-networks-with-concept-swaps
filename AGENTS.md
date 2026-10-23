@@ -10,11 +10,12 @@ Read `docs/architecture.md` for the module graph and data flow.
 ## Commands
 ```bash
 uv sync                                  # install (Python 3.12, torch cu130 from the PyTorch index)
-uv run pytest -q                         # 32 tests; model tests download inception5h.pth on first use
+uv run pytest -q                         # 34 tests; model tests download inception5h.pth on first use
 uv run python main.py --quick            # smoke test of the whole pipeline (offset seeds, results/quick/)
 uv run python main.py                    # full run (writes results/, figures/, reports/generated/results.md)
 uv run python main.py --phase report     # regenerate tables/figures from existing results/*.json
 uv run python main.py --phase audit      # post-hoc audit checks (results/posthoc_audit.json); then --phase report
+uv run python main.py --phase audit2     # third-audit checks (results/posthoc_audit2.json); then --phase report
 ```
 
 ## Rules that protect the science

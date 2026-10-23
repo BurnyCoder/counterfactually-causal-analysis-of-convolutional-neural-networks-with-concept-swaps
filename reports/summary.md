@@ -14,7 +14,8 @@ between the images. All pass/fail rules were written down and published before r
    correlation 0.97 for the 10 curve neurons and 0.85 for the next layer's 14 curve neurons.
 2. **The 10 neurons are special.** Transplanting them moves the next layer's curve code about 41% of the way to the
    other image. 95% of the control groups of 10 neurons stay below 10%. Ranking all 480 neurons by how much each one
-   moves the next layer on its own (a check added later) picks 9 of the 10 published neurons as the top 10.
+   moves the next layer on its own (a check added later) picks 9 of the 10 published neurons as the top 10 when we read
+   the next layer's 14 curve neurons. It picks 8 of the 10 when we read the whole next layer.
 3. **They are not enough on their own.** The next layer actually switches to the transplanted direction in only
    about 18% of cases, so our pre-registered "strong" hypothesis (at least 50%) is **falsified**. The rest of the
    direction information is spread over many more neurons: picking the most useful ones first, it takes about 80 for reliable transfer. How
@@ -22,8 +23,11 @@ between the images. All pass/fail rules were written down and published before r
    neurons, they transfer the direction in 40% of cases. Read from the whole layer, they transfer it in only 2%,
    and the 10 curve neurons carry 57% of the shift.
 4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
-   neurons call it a curve 81% of the time. Control groups do so 3% of the time on average.
-5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay below 0.075.
+   neurons call it a curve 81% of the time. Control groups do so 3% of the time on average. The reverse transplant
+   almost never makes a curve read as a line. That lopsidedness comes from where the readout draws its line/curve
+   boundary: the 10 neurons move the next layer about equally far in both directions.
+5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay at
+   or below 0.075.
    Replacing the 10 neurons' activity with its average changes the network's final answer on 17% of photos, versus
    9% for control groups.
 
