@@ -45,10 +45,11 @@ class TemplateDecoder:
         return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-12)  # unit length (epsilon avoids 0/0)
 
     def predict(self, Z: np.ndarray, cell: np.ndarray) -> np.ndarray:
-        out = np.empty(len(Z))  # decoded label per row
+        out = np.full(len(Z), np.nan)  # decoded label per row (NaN until decoded)
         for c, (T, th) in self.t.items():  # decode each cell's rows against that cell's templates only
             m = cell == c
             out[m] = th[np.argmax(self._center(Z[m]) @ T.T, axis=1)]  # (rows x templates) correlations -> best label
+        assert not np.isnan(out).any(), "a row belongs to a cell without templates"
         return out
 
 

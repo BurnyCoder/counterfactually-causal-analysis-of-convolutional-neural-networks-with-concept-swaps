@@ -7,8 +7,10 @@ Global context: the Circuits neuron indices (e.g. mixed3b:379) refer to this exa
 (https://distill.pub/2020/circuits/curve-detectors/); every intervention in `interventions.py` uses these helpers.
 """
 
+import hashlib  # checkpoint integrity check
 import importlib  # to reach Lucent's module object (its package re-exports a class of the same name)
 from contextlib import contextmanager  # https://docs.python.org/3/library/contextlib.html
+from pathlib import Path
 from types import SimpleNamespace
 
 import torch
@@ -29,6 +31,7 @@ _ACTIVE_LRN = {"params": TF_LRN}  # set by each model's forward pre-hook, read b
 # Readout positions: 4a unit (6,6) and the 3b unit (13,13) it is centred on. By stride arithmetic both have their
 # receptive-field centre at input pixel 8*13+7 = 111 (checked empirically by `rf_center` in the tests).
 READOUT_POS = {"mixed3b": 13, "mixed4a": 6}
+WEIGHTS_SHA256 = "44f1f1e0734fa77edd0ab948c0d4d5c9ab6f4efce10b02d793fd14ab2d71a73b"  # inception5h.pth used for the reported run
 
 
 def lrn(x: torch.Tensor, params: dict) -> torch.Tensor:
@@ -58,6 +61,9 @@ def load_inceptionv1(device: str = "cuda", lrn_mode: str = "tf") -> torch.nn.Mod
     torch.backends.cudnn.allow_tf32 = False  # full-fp32 convolutions (TF32 would add ~1e-3 relative error)
     params = {"tf": TF_LRN, "lucent": LUCENT_LRN}[lrn_mode]  # KeyError on typos is intended
     net = inceptionv1(pretrained=True, redirected_ReLU=False).eval().to(device)
+    ckpt = Path(torch.hub.get_dir()) / "checkpoints" / "inception5h.pth"  # where torch.hub cached Lucent's download
+    if hashlib.sha256(ckpt.read_bytes()).hexdigest() != WEIGHTS_SHA256:  # torch.hub itself does not verify it
+        raise RuntimeError(f"{ckpt.name} checksum mismatch; delete it so torch.hub re-downloads")
     net.register_forward_pre_hook(lambda m, a: _ACTIVE_LRN.update(params=params))  # select LRN per model
     for p in net.parameters():  # inference only: no gradients w.r.t. weights
         p.requires_grad_(False)

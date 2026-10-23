@@ -7,6 +7,7 @@ that centre (so the readout unit sees the same scene rotated). Global context: n
 Imagenette is an ImageNet subset; images are never redistributed by this repo (only file names).
 """
 
+import hashlib
 import tarfile
 import urllib.request
 from pathlib import Path
@@ -20,21 +21,42 @@ from concept_swap.stimuli import CENTER, SIZE
 
 log = get_logger(__name__)
 SHORT = 332  # resize the shorter side to 332 px so a 224 crop rotated by any angle stays inside the image (112*sqrt2 < 166)
+N_VAL = 3925  # validation images in Imagenette v2 (https://github.com/fastai/imagenette)
+IMAGENETTE_SHA256 = "569b4497c98db6dd29f335d1f109cf315fe127053cedf69010d047f0188e158c"  # archive used for the reported run
+
+
+def sha256(path: Path) -> str:
+    """Hex SHA-256 of a file, read in 1 MB chunks (https://docs.python.org/3/library/hashlib.html)."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
 
 
 def ensure_imagenette(cfg: Config) -> Path:
-    """Download and extract Imagenette-320 into data/imagenette/ if needed; return the validation folder."""
+    """Download (atomically, checksum-verified) and extract Imagenette-320 into data/imagenette/; return val/.
+
+    Local: the archive is written to a .part file and renamed only when complete; its SHA-256 must equal the value
+    recorded for the reported run; extraction is redone unless exactly N_VAL validation images are present.
+    Global context: the selection/confirmatory halves depend on the exact image list, so a partial download must fail.
+    """
     root = cfg.data_dir / "imagenette"
     val = root / "imagenette2-320" / "val"
-    if val.exists():
+    if val.exists() and len(list(val.glob("*/*.JPEG"))) == N_VAL:
         return val
     root.mkdir(parents=True, exist_ok=True)
     tgz = root / "imagenette2-320.tgz"
     if not tgz.exists():
         log.info("downloading %s (~342 MB)", cfg.imagenette_url)
-        urllib.request.urlretrieve(cfg.imagenette_url, tgz)  # https://docs.python.org/3/library/urllib.request.html
+        part = tgz.with_suffix(".tgz.part")
+        urllib.request.urlretrieve(cfg.imagenette_url, part)  # https://docs.python.org/3/library/urllib.request.html
+        part.replace(tgz)  # atomic rename: an interrupted download never leaves a "complete-looking" archive
+    if sha256(tgz) != IMAGENETTE_SHA256:
+        raise RuntimeError(f"{tgz.name} checksum mismatch; delete it and rerun")
     with tarfile.open(tgz) as tf:
         tf.extractall(root, filter="data")  # safe extraction of an untrusted archive (Python >= 3.12)
+    assert len(list(val.glob("*/*.JPEG"))) == N_VAL, "incomplete Imagenette extraction"
     return val
 
 
@@ -43,12 +65,20 @@ def list_images(val: Path) -> list[Path]:
     return sorted(val.glob("*/*.JPEG"))
 
 
-def crop(path: Path, angle: float = 0.0) -> np.ndarray:
+def crop(path: Path, angle: float = 0.0, square: bool = False) -> np.ndarray:
     """224x224 RGB crop in [0, 1] whose pixel (CENTER, CENTER) is the image centre, after rotating the resized image
-    counter-clockwise by `angle` degrees about its centre (PIL Image.rotate, bilinear)."""
+    counter-clockwise by `angle` degrees about its centre (PIL Image.rotate, bilinear).
+
+    square=True first cuts the central SHORT x SHORT square; PIL then rotates by 90/180/270 deg with an exact
+    transpose instead of bilinear resampling (Image.rotate fast path), so no interpolation blur differs from the
+    unrotated base. The 224 crop is identical either way for angle 0.
+    """
     im = Image.open(path).convert("RGB")
     s = SHORT / min(im.size)
     im = im.resize((round(im.width * s), round(im.height * s)), Image.Resampling.BILINEAR)
+    if square:
+        l, t = (im.width - SHORT) // 2, (im.height - SHORT) // 2  # central square, same centre pixel as below
+        im = im.crop((l, t, l + SHORT, t + SHORT))
     if angle:
         im = im.rotate(angle, resample=Image.Resampling.BILINEAR)  # about the image centre, same canvas size
     cx, cy = im.width // 2, im.height // 2
