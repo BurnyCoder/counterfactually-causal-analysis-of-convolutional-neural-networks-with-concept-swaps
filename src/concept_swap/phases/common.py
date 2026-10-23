@@ -39,7 +39,7 @@ def save_json(cfg: Config, name: str, obj: dict) -> None:
     cfg.results_dir.mkdir(parents=True, exist_ok=True)
     payload = dict(created=datetime.now().isoformat(timespec="seconds"), config=cfg.as_log_dict(), results=_jsonable(obj))
     (cfg.results_dir / f"{name}.json").write_text(json.dumps(payload, indent=1))
-    log.info("saved %s", cfg.results_dir / f"{name}.json")
+    log.info("saved %s/%s.json", cfg.as_log_dict()["results_dir"], name)
 
 
 @dataclass

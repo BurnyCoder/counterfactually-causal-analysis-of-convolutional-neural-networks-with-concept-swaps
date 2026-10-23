@@ -35,7 +35,7 @@ def main() -> None:
     cfg = cfg.with_quick() if args.quick else cfg
     path = setup_logging(cfg.log_dir)
     log = get_logger("main")
-    log.info("log file: %s", path)
+    log.info("log file: logs/%s", path.name)
     log.info("config: %s", json.dumps(cfg.as_log_dict()))
     rng = np.random.default_rng(cfg.confirm_seed)  # single RNG stream for null sets and bootstraps
     torch.manual_seed(cfg.confirm_seed)

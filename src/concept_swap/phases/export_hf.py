@@ -59,4 +59,4 @@ def run(cfg: Config, model) -> None:
     for f in list(cfg.results_dir.glob("*.json")) + [ROOT / "reports" / "generated" / "results.md", ROOT / "reports" / "preregistration.md"]:
         shutil.copy(f, OUT / "results" / f.name)
     shutil.copy(ROOT / "docs" / "hf_dataset_card.md", OUT / "README.md")
-    log.info("export written to %s", OUT)
+    log.info("export written to %s/", OUT.name)
