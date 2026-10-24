@@ -238,3 +238,155 @@ terminal.
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |
 | `docs/` | literature review, methodology rationale, architecture, reproducibility |
+
+## Did any concept swaps succeed?
+Yes, but only a minority of them. In the main test (H1), the swap made the 14 `mixed4a` curve units decode the
+source's orientation in **17.7% of pairs**: 811 of 4,574 eligible pairs (out of 4,608), 95% CI 15.6–19.9%
+([results.md](reports/generated/results.md?plain=1#L36)). The swap overwrites the base image's values of the 10
+`mixed3b` curve units at every position of the 11×11 `mixed3b` window that feeds the `mixed4a` readout unit at
+(6, 6), then recomputes only `maxpool4 → mixed4a` ([preregistration.md](reports/preregistration.md?plain=1#L65),
+[model.py](src/concept_swap/model.py#L160), [interventions.py](src/concept_swap/interventions.py#L67)).
+
+The control sets did much worse. The two pre-registered nulls have 2,000 sets each, and every set is 10 other
+`mixed3b` channels ([preregistration.md](reports/preregistration.md?plain=1#L85)):
+- **Δ-matched:** drawn so that their histogram over deciles of Δ equals the family's. Δ is each channel's mean
+  squared base→source change in the window, measured on the selection split
+  ([families.py](src/concept_swap/families.py#L32), [common.py](src/concept_swap/phases/common.py#L59)).
+- **Branch-matched:** drawn from the other 86 channels of the `mixed3b` 5×5 branch, channels 320–415
+  ([common.py](src/concept_swap/phases/common.py#L67), [preregistration.md](reports/preregistration.md?plain=1#L88)).
+
+Across these 4,000 sets the mean success rate was **0.008%** (Δ-matched 0.011%, branch-matched 0.005%). The best
+single set, a Δ-matched one, reached 0.13%, or 6 of 4,574 pairs (`null_iia` in `results/e2_synthetic.json`). A
+descriptive third null of 500 random sets averaged 0.001% ([preregistration.md](reports/preregistration.md?plain=1#L90)).
+
+Let D = IIA − the 95th percentile of the Δ-matched null
+([preregistration.md](reports/preregistration.md?plain=1#L105-L111), [stats.py](src/concept_swap/stats.py#L62)).
+- H1 is "supported" only if IIA ≥ 0.5, D ≥ 0.10, the CI lower bound of D > 0, and the same CI condition holds
+  against the branch-matched null.
+- It is "falsified" if the CI upper bound of D < 0.05, or if IIA < 0.2.
+
+H1 is **falsified** by the IIA < 0.2 clause (0.177). The margin clause does not trigger: D's CI is [0.155, 0.198]
+([results.md](reports/generated/results.md?plain=1#L36)).
+
+**What counts as success.**
+- The swapped base must decode to within 10° of what the clean source decodes to
+  ([common.py](src/concept_swap/phases/common.py#L151), [preregistration.md](reports/preregistration.md?plain=1#L75)).
+- The decoder z-scores the 14 units' pre-ReLU values. It picks the orientation whose template correlates best
+  (Pearson) among the 72 selection-split templates of the pair's own nuisance cell: arc radius, line width and
+  contrast polarity ([readouts.py](src/concept_swap/readouts.py#L31), [preregistration.md](reports/preregistration.md?plain=1#L71)).
+- A pair counts only if both clean images decode to within 10° of their true orientation. 34 of the 4,608 pairs
+  fail this ([common.py](src/concept_swap/phases/common.py#L145)).
+- Each base gets 4 sources from the same nuisance cell, all at least 30° away in orientation
+  ([stimuli.py](src/concept_swap/stimuli.py#L109-L113)).
+
+### Success % for each swap test
+| Swap | Success % (IIA) | Verdict | Source |
+|---|---|---|---|
+| **H1:** 3b curve units → 4a curve units, synthetic arcs | **17.7%** | falsified (H1 rule) | [results.md](reports/generated/results.md?plain=1#L36) |
+| H1 re-runs: jitter seeds 3 and 4; Lucent's default LRN | 17.2%, 17.1%; 17.2% | falsified (H1 rule) | [results.md](reports/generated/results.md?plain=1#L40-L42) |
+| Same swap, ridge decoder over all 508 `mixed4a` channels | 10.5% | supported* | [results.md](reports/generated/results.md?plain=1#L37) |
+| **H2:** curvature swap (line ↔ arc) | 40.5% overall; **line→arc 80.7%**, arc→line 0.3% | supported* | [results.md](reports/generated/results.md?plain=1#L38), [line 110](reports/generated/results.md?plain=1#L110) |
+| H4: 3a curve units → 3b curve units | 5.8% | supported* | [results.md](reports/generated/results.md?plain=1#L39) |
+| Arcs composited onto Imagenette crops | 19.0% | supported* | [results.md](reports/generated/results.md?plain=1#L43) |
+| H5: rotated curve-present Imagenette crops (−90°, −45°, 45°, 90°, 180°) | 7.2% (per angle 7.7 / 3.0 / 3.0 / 8.1 / 14.0%) | supported* | [results.md](reports/generated/results.md?plain=1#L44), [line 111](reports/generated/results.md?plain=1#L111) |
+| For reference: the other 470 `mixed3b` channels / all 480 | 40.3% / 100% | — | [results.md](reports/generated/results.md?plain=1#L52) |
+
+\* The secondary tests are judged by the continuous effect, not by IIA: the effect margin's CI must exclude 0 and
+the Holm-adjusted p must be below 0.05 ([preregistration.md](reports/preregistration.md?plain=1#L115-L120),
+[results.md](reports/generated/results.md?plain=1#L32)). "Supported" therefore does not mean that the swaps usually
+flip the decoded value.
+
+Post hoc (audit2), H5 on −90°/90°/180° only gives 10.8% with or without interpolation blur
+([results.md](reports/generated/results.md?plain=1#L179-L184)). That run's decoder chooses among 4 versions of each
+photo (0°, −90°, 90°, 180°) instead of 6 ([audit2.py](src/concept_swap/phases/audit2.py#L63),
+[e3_natural.py](src/concept_swap/phases/e3_natural.py#L81)). It is therefore not a subset of the 7.2% run, where the
+same three angles average 9.9%.
+
+**H2 is the strongest success.** Copying the 10 units' activity from an arc into a straight line with the same
+midpoint tangent makes the 4a curve units read "arc" in 80.7% of pairs. A post-hoc audit compared this against 1,000
+Δ-matched control sets for the same direction. The controls do so in 3.0% of pairs on average, and their 95th
+percentile is 11.4% ([results.md](reports/generated/results.md?plain=1#L151), [audit.py](src/concept_swap/phases/audit.py#L110)).
+The decision is binary, line template vs arc template within the same (nuisance cell, θ). That is a lower bar than
+H1's choice among 72 orientations ([e2_synthetic.py](src/concept_swap/phases/e2_synthetic.py#L116-L123)).
+
+The reverse swap almost never works (0.3%). Yet the units move the readout a similar distance in both directions:
+the normalized effect is 0.418 for line→arc and 0.367 for arc→line
+([results.md](reports/generated/results.md?plain=1#L151-L152)). Since the average move is similar, the one-sidedness
+most likely comes from where the correlation decoder's line/arc boundary lies, not from how far the units move the
+readout. This is an inference from the average effects; no code measures the boundary directly.
+
+### Concrete successful examples (H1)
+These are six successful pairs drawn at random from the 811 successes in the per-pair export,
+`np.sort(np.random.default_rng(0).choice(success_rows, 6, replace=False))`. They are rows 153, 988, 1114, 1984, 2608
+and 3737 of `pairs_h1_confirmatory.csv`.
+- **Effect** is this pair's own ratio, `family_effect_numerator / effect_denominator`: the projection of the
+  patched readout's move onto the base→source direction ([export_hf.py](src/concept_swap/phases/export_hf.py#L46),
+  [line 54](src/concept_swap/phases/export_hf.py#L54)). 0 means no change and 1 means it equals the source.
+- The headline effect (0.410) is instead a ratio of sums over pairs ([common.py](src/concept_swap/phases/common.py#L174)).
+- Polarity 0 is dark-on-light and polarity 1 is light-on-dark ([stimuli.py](src/concept_swap/stimuli.py#L28),
+  [line 73](src/concept_swap/stimuli.py#L73)).
+
+| Base θ | Source θ | Radius, width, contrast | Source decodes to | Swapped base decodes to | Effect | Other 470 channels alone |
+|---|---|---|---|---|---|---|
+| 190° | 0° | 30, 3, dark-on-light | 355° | **350°** | 0.43 | also succeed (350°) |
+| 155° | 40° | 30, 5, light-on-dark | 40° | **35°** | 0.51 | fail (150°) |
+| 310° | 105° | 30, 5, light-on-dark | 110° | **100°** | 0.53 | fail (70°) |
+| 320° | 80° | 45, 5, dark-on-light | 85° | **85°** | 0.48 | also succeed (75°) |
+| 20° | 160° | 60, 3, light-on-dark | 155° | **150°** | 0.62 | fail (20°) |
+| 350° | 85° | 80, 3, dark-on-light | 85° | **90°** | 0.48 | fail (100°) |
+
+The README example at the top ([hero_concept_swap.png](figures/hero_concept_swap.png)) is a different case. It is
+base 0°, source 90°, radius 45, width 3, dark-on-light. The source decodes to 90° and the swapped base also decodes
+to 90°.
+- The cell and source are fixed in code ([hero.py](src/concept_swap/phases/hero.py#L28-L29),
+  [line 65](src/concept_swap/phases/hero.py#L65)). That rule was committed in `8430f10` at 17:20:08, before the
+  confirmatory H1 result was logged at 17:26:08 ([confirmatory-run log](logs/20261023_171349.log#L12)).
+- The pair comes from a full orientation sweep and is not one of the 4,608 scored pairs. This base's four scored
+  sources are 50°, 120°, 200° and 325°.
+
+In that sweep, all 61 sources at least 30° from the base decode correctly when clean. 14 of them succeed (23%):
+85–100°, 120–135°, 145–160°, 210° and 215°. The 71 swapped images (the base itself excluded) decode to only 15
+distinct orientations: 0, 5, 10, 20, 40, 90, 130, 135, 150, 170, 205, 210, 330, 340 and 355°. These numbers come
+from the hero phase's log line in a separate `--phase hero` run after the confirmatory run. That log
+(`logs/20261023_181105.log`) is gitignored ([.gitignore](.gitignore#L34)). `uv run python main.py --phase hero`
+writes the line again.
+
+### Where swaps succeed
+The |Δθ| bins are a pre-registered exploratory analysis computed by the pipeline
+([preregistration.md](reports/preregistration.md?plain=1#L145)). Everything else below is a post-hoc breakdown of
+the per-pair file `data/pairs_h1_confirmatory.csv` in the
+[Hugging Face dataset](https://huggingface.co/datasets/BurnyCoder/inceptionv1-curve-concept-swaps), which
+`--phase export` writes locally to `hf_export/data/`. It is not corrected for multiple comparisons. CIs use the
+pipeline's pigeonhole bootstrap (B = 2000, seed 0); other seeds move the bounds by up to about 0.5 percentage points.
+
+- **Orientation gap** ([results.md](reports/generated/results.md?plain=1#L69-L75)):
+  - 30–60°: 11.1%
+  - 60–90°: 10.5%
+  - 90–120°: 22.2%
+  - 120–150°: 30.3%
+  - 150–180°: 14.9%
+- **Arc size:**
+  - Radius 30 px: 22.6% [17.7, 27.7]; 45 px: 19.7%; 60 px: 15.3%; 80 px: 13.5% [9.8, 17.2].
+  - Radius 30 minus radius 80: +9.2 percentage points [2.9, 15.6].
+- **Contrast:** light-on-dark 20.7% [17.5, 24.1] vs dark-on-light 14.7% [12.1, 17.5]; the difference is +6.0
+  percentage points [2.0, 10.2].
+- **Line width:** 3 px 17.0%, 5 px 18.5%.
+- **Source orientation:**
+  - Rates of 30–48% occur at sources 0°, 5°, 45°, 55°, 80–100°, 270° and 355°.
+  - Rates of 0–7% occur at 195–225° and 300–335°, with 0% at 195, 200, 205, 300, 310, 315 and 335°.
+  - Each orientation has only 46–82 eligible pairs, so these rates are noisy.
+- **Most successes come from the curve units:** in 651 of the 811 successes (80%), the other 470 channels on their
+  own fail on that pair.
+- **Failures are still partial moves:** the median per-pair effect is 0.40 for failed pairs and 0.55 for successes.
+
+### Bottom line
+The 10 curve units carry orientation far better than matched controls. They move the readout 41% of the way to the
+source, against a Δ-null 95th percentile of 9.8%; the other 470 channels together move it 59%
+([results.md](reports/generated/results.md?plain=1#L36), [line 52](reports/generated/results.md?plain=1#L52)). But
+on their own they rarely flip the decoded orientation (17.7%).
+
+Reaching about 80% success takes roughly 80 channels. The top 80 by activation change give 79.2%, and the top 80 by
+single-channel patching effect give 80.9% ([results.md](reports/generated/results.md?plain=1#L91),
+[line 147](reports/generated/results.md?plain=1#L147)). The effect ranking comes from a post-hoc audit. Both are
+fixed rankings by a per-channel score, not a search over sets, so 80 is only an upper bound on the smallest set that
+reaches 80% ([e2_synthetic.md](reports/e2_synthetic.md?plain=1#L96-L99)).
