@@ -10,10 +10,18 @@ in the style of [Huang et al. 2023](https://arxiv.org/abs/2309.10312) and [Baeum
 3. Check whether the next layer's curve units now represent the source orientation.
 4. Compare the curve family against thousands of matched control neuron sets, using a pre-registered decision rule.
 
-The swapped and the read neurons are different units in consecutive layers. The 10 `mixed3b` curve units are
-overwritten, and the 14 `mixed4a` curve units are only recomputed by the ordinary forward pass (no retraining).
-The other 470 `mixed3b` channels keep the base image's values, so `mixed4a` receives conflicting evidence, and the
-test asks whether its curve units side with the swapped curve family.
+The swapped and the read units are different channels of two consecutive Inception blocks, separated only by the
+parameter-free max-pool `maxpool4` ([`model.py`](src/concept_swap/model.py)). The 10 published `mixed3b` curve units
+([data](data/circuits/README.md)) are overwritten with the source image's activations across the whole 11×11
+`mixed3b` window that the readout unit, `mixed4a` (6,6), can see. The 14 published `mixed4a` curve units are never set
+directly. They are recomputed from the patched window by the unchanged pretrained `maxpool4 → mixed4a` block (frozen
+weights, no retraining), which [`tests/test_model.py`](tests/test_model.py) checks against the full forward pass. The
+other 470 of the 480 `mixed3b` channels keep the base image's values, and they also carry orientation: swapped on their
+own, they transfer the decoded orientation in 40.3% of pairs
+([results.md](reports/generated/results.md?plain=1#L52)). So `mixed4a` receives conflicting evidence: the source's
+orientation from the curve family and the base's from the other 470 channels. The primary test asks whether the 14
+curve units then decode to within 10° of the clean source's orientation
+([preregistration.md](reports/preregistration.md?plain=1#L62-L77)).
 
 ![Concept swap example](figures/hero_concept_swap.png)
 
