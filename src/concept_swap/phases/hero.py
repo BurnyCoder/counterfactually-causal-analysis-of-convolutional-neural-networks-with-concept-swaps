@@ -71,4 +71,10 @@ def run(cfg: Config, model) -> None:
     anim = FuncAnimation(fig, lambda k: draw(fig, axes, k), frames=range(0, len(srcs), 2))  # every 10 degrees
     anim.save(cfg.figures_dir / "concept_swap_sweep.gif", writer=PillowWriter(fps=4))
     plt.close(fig)
-    log.info("hero figure + GIF written; example base %d, decoded patched orientations %s", b, dec_p.round().tolist())
+    th = g.theta.values[srcs]  # source orientations 0 ... 355
+    far, ok = np.abs(S.circ_diff(th, g.theta[b])) >= cfg.min_dtheta, np.abs(S.circ_diff(dec_s, th)) <= cfg.tol_deg  # pair rules
+    hit = far & ok & (np.abs(S.circ_diff(dec_p, dec_s)) <= cfg.tol_deg)  # H1's success criterion
+    log.info("hero figure + GIF written; example base %d, decoded patched orientations %s; decoded clean sources %s; "
+             "%d of %d sources >= %d deg from the base decode within %g deg when clean; %d succeed: %s", b,
+             dec_p.round().tolist(), dec_s.round().tolist(), (far & ok).sum(), far.sum(), cfg.min_dtheta, cfg.tol_deg,
+             hit.sum(), th[hit].tolist())
