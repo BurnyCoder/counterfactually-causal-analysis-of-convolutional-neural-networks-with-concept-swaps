@@ -173,12 +173,12 @@ uv run python main.py
 
 - Requires [uv](https://docs.astral.sh/uv/) ≥ 0.8.6, the first version with `extra-build-variables`.
 - `uv sync` installs Python 3.12, torch 2.14 (CUDA 13.0 wheels) and Lucent from git.
-- `pytest` runs 34 tests. It downloads `inception5h.pth` (28 MB) on first use.
+- `pytest` runs 40 tests. It downloads `inception5h.pth` (28 MB) on first use.
 - `--quick` is a smoke test of the whole pipeline. It takes under a minute on an RTX 5070 Laptop once Imagenette is
   downloaded. It uses separate seeds and writes to `results/quick/`.
 - The full run takes about 1 hour on an RTX 5070 Laptop. E3 downloads Imagenette-320 (342 MB) once.
 
-To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,report}`. Four phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the second, independent audit, about 5 min), `--phase audit2` (checks added by the third audit, about 4 min) and `--phase export` (Hugging Face folder). Later phases read earlier
+To redo a single phase, use `uv run python main.py --phase {e1,e2,e3,hero,examples,report}`. Four phases run only when named: `--phase posthoc` (post-hoc robustness checks, about 22 min), `--phase audit` (post-hoc checks added by the second, independent audit, about 5 min), `--phase audit2` (checks added by the third audit, about 4 min) and `--phase export` (Hugging Face folder). Later phases read earlier
 phases' results from `results/*.json`. To reproduce every number in the reports and the paper, run `main.py`, then
 `--phase posthoc`, `--phase audit`, `--phase audit2` and `--phase report`. A single E2 or E3 phase starts a fresh random stream, so its null sets differ
 from the full run's. They are statistically equivalent, but only the full run reproduces the reported numbers exactly. The run is configured through `.env`; see `.env.example`. A CPU run works
@@ -193,7 +193,8 @@ graph LR
   D --> E[E2: cache 3b RF windows<br/>swap channel sets<br/>recompute 4a, decode]
   E --> F[E3: Imagenette<br/>composited arcs, rotations,<br/>ablation relevance]
   F --> G[hero figure + GIF]
-  G --> H[report: tables + summary figures]
+  G --> X[examples: random successes/failures<br/>through the network, feature vis]
+  X --> H[report: tables + summary figures]
   D -.-> R[(results/*.json)]
   E -.-> R
   F -.-> R
@@ -206,7 +207,10 @@ graph LR
    Every neuron set (the family, references, and about 4500 null sets) is scored on every pair.
 3. **E3** downloads Imagenette and repeats the swap on composited and rotated photos, then runs full-network
    ablations.
-4. **Report** writes [`reports/generated/results.md`](reports/generated/results.md) and
+4. **Examples** recomputes the H1 per-pair outcomes, draws random successes and failures, and renders each pair's
+   input images, `mixed3b` curve-unit maps, `mixed4a` readouts and decoder output, plus feature visualizations of
+   the 24 curve units. It changes no number.
+5. **Report** writes [`reports/generated/results.md`](reports/generated/results.md) and
    `figures/summary_*.png` from the JSONs. All numbers quoted in the reports come from there.
 
 The module graph is in [`docs/architecture.md`](docs/architecture.md). Logs go to `logs/<timestamp>.log` and the
@@ -221,10 +225,13 @@ terminal.
   reference.
 - Template and ridge orientation decoders, IIA, and a normalized projection effect.
 - Pigeonhole bootstrap CIs, permutation p-values, Holm correction, and a pre-registered three-way verdict.
+- Example-swap figures: random successful and failed pairs shown from input pixels through the swapped `mixed3b`
+  maps to the `mixed4a` readout and decoded orientation, with neurons shown by their feature visualizations.
 - Generated result tables, figures, a GIF and a LaTeX paper.
 
 ## Technologies
-- PyTorch 2.14 (CUDA 13.0) and [Lucent](https://github.com/greentfrapp/lucent) (Lucid InceptionV1 port).
+- PyTorch 2.14 (CUDA 13.0) and [Lucent](https://github.com/greentfrapp/lucent) (Lucid InceptionV1 port and feature
+  visualization).
 - NumPy, pandas, scikit-learn (RidgeCV, AUROC), statsmodels (Holm) and Pillow (rendering).
 - Matplotlib (figures, GIF) and python-dotenv.
 - uv for the environment, pytest for tests, and pdflatex (MiKTeX) for the paper.
@@ -233,8 +240,8 @@ terminal.
 | Path | Contents |
 |---|---|
 | `main.py` | pipeline wrapper |
-| `src/concept_swap/` | library modules (`model`, `stimuli`, `interventions`, `readouts`, `families`, `stats`, `natural`, `plots`) and `phases/` |
-| `tests/` | 34 tests: RF locality, LRN formula, block re-implementation, crop exactness, hook invariants, which 4a branches add patches exactly, geometry, exact rotations, null samplers, statistics |
+| `src/concept_swap/` | library modules (`model`, `stimuli`, `interventions`, `readouts`, `families`, `stats`, `natural`, `featvis`, `plots`) and `phases/` |
+| `tests/` | 40 tests: RF locality and size, LRN formula, block re-implementation, crop exactness, hook invariants, which 4a branches add patches exactly, geometry, exact rotations, null samplers, statistics, decoder correlations, example selection, feature visualization |
 | `data/circuits/` | the authors' published curve-family tuning data (CC-BY 4.0) |
 | `results/`, `figures/` | outputs of the confirmatory run |
 | `reports/` | pre-registration, per-experiment reports, all-experiments report, plain-language summary, paper (`reports/paper/paper.pdf`) |
@@ -246,7 +253,7 @@ source's orientation in **17.7% of pairs**: 811 of 4,574 eligible pairs (out of 
 ([results.md](reports/generated/results.md?plain=1#L36)). The swap overwrites the base image's values of the 10
 `mixed3b` curve units at every position of the 11×11 `mixed3b` window that feeds the `mixed4a` readout unit at
 (6, 6), then recomputes only `maxpool4 → mixed4a` ([preregistration.md](reports/preregistration.md?plain=1#L65),
-[model.py](src/concept_swap/model.py#L160), [interventions.py](src/concept_swap/interventions.py#L67)).
+[model.py](src/concept_swap/model.py#L161), [interventions.py](src/concept_swap/interventions.py#L67)).
 
 The control sets did much worse. The two pre-registered nulls have 2,000 sets each, and every set is 10 other
 `mixed3b` channels ([preregistration.md](reports/preregistration.md?plain=1#L85)):
@@ -261,7 +268,7 @@ single set, a Δ-matched one, reached 0.13%, or 6 of 4,574 pairs (`null_iia` in 
 descriptive third null of 500 random sets averaged 0.001% ([preregistration.md](reports/preregistration.md?plain=1#L90)).
 
 Let D = IIA − the 95th percentile of the Δ-matched null
-([preregistration.md](reports/preregistration.md?plain=1#L105-L111), [stats.py](src/concept_swap/stats.py#L62)).
+([preregistration.md](reports/preregistration.md?plain=1#L105-L111), [stats.py](src/concept_swap/stats.py#L72)).
 - H1 is "supported" only if IIA ≥ 0.5, D ≥ 0.10, the CI lower bound of D > 0, and the same CI condition holds
   against the branch-matched null.
 - It is "falsified" if the CI upper bound of D < 0.05, or if IIA < 0.2.
@@ -271,12 +278,12 @@ H1 is **falsified** by the IIA < 0.2 clause (0.177). The margin clause does not 
 
 **What counts as success.**
 - The swapped base must decode to within 10° of what the clean source decodes to
-  ([common.py](src/concept_swap/phases/common.py#L151), [preregistration.md](reports/preregistration.md?plain=1#L75)).
+  ([common.py](src/concept_swap/phases/common.py#L166), [preregistration.md](reports/preregistration.md?plain=1#L75)).
 - The decoder z-scores the 14 units' pre-ReLU values. It picks the orientation whose template correlates best
   (Pearson) among the 72 selection-split templates of the pair's own nuisance cell: arc radius, line width and
   contrast polarity ([readouts.py](src/concept_swap/readouts.py#L31), [preregistration.md](reports/preregistration.md?plain=1#L71)).
 - A pair counts only if both clean images decode to within 10° of their true orientation. 34 of the 4,608 pairs
-  fail this ([common.py](src/concept_swap/phases/common.py#L145)).
+  fail this ([common.py](src/concept_swap/phases/common.py#L160)).
 - Each base gets 4 sources from the same nuisance cell, all at least 30° away in orientation
   ([stimuli.py](src/concept_swap/stimuli.py#L109-L113)).
 
@@ -323,7 +330,7 @@ and 3737 of `pairs_h1_confirmatory.csv`.
 - **Effect** is this pair's own ratio, `family_effect_numerator / effect_denominator`: the projection of the
   patched readout's move onto the base→source direction ([export_hf.py](src/concept_swap/phases/export_hf.py#L46),
   [line 54](src/concept_swap/phases/export_hf.py#L54)). 0 means no change and 1 means it equals the source.
-- The headline effect (0.410) is instead a ratio of sums over pairs ([common.py](src/concept_swap/phases/common.py#L174)).
+- The headline effect (0.410) is instead a ratio of sums over pairs ([common.py](src/concept_swap/phases/common.py#L189)).
 - Polarity 0 is dark-on-light and polarity 1 is light-on-dark ([stimuli.py](src/concept_swap/stimuli.py#L28),
   [line 73](src/concept_swap/stimuli.py#L73)).
 
@@ -336,11 +343,72 @@ and 3737 of `pairs_h1_confirmatory.csv`.
 | 20° | 160° | 60, 3, light-on-dark | 155° | **150°** | 0.62 | fail (20°) |
 | 350° | 85° | 80, 3, dark-on-light | 85° | **90°** | 0.48 | fail (100°) |
 
+Three random failures, drawn by the same rule (seed 0) from the 3,763 eligible failures:
+
+| Base θ | Source θ | Radius, width, contrast | Source decodes to | Swapped base decodes to | Effect | Other 470 channels alone |
+|---|---|---|---|---|---|---|
+| 190° | 125° | 60, 3, dark-on-light | 125° | 200° | 0.43 | succeed (130°) |
+| 175° | 20° | 60, 5, dark-on-light | 25° | 170° | 0.43 | fail (155°) |
+| 260° | 225° | 80, 3, light-on-dark | 230° | 255° | 0.09 | succeed (225°) |
+
+These rows come from [`reports/generated/examples.md`](reports/generated/examples.md), which the `examples` phase
+writes.
+
+#### Seeing the swaps
+The `examples` phase ([examples.py](src/concept_swap/phases/examples.py)) draws the six successes, the three
+failures and the hero pair as they pass through the network. It is output-only.
+- **It recomputes the H1 per-pair outcomes** and asserts that their IIA equals the confirmatory 0.177307.
+- **It checks the figures against the scored swap.** Swapping the boxed window in the full `mixed3b` maps and
+  re-running `mixed4a` gives exactly the scored readout (max |Δz| 2.5·10⁻⁶,
+  [run log](logs/20261024_024626.log)).
+- **It follows the Circuits papers' conventions** ([Cammarata et al. 2020](https://distill.pub/2020/circuits/curve-detectors/)):
+  - Each neuron is shown by its feature visualization, an image optimised to excite that one neuron at the readout
+    position ([Olah et al. 2017](https://distill.pub/2017/feature-visualization/); rendered with
+    [Lucent](https://github.com/greentfrapp/lucent)).
+  - Activations are in standard deviations.
+  - The feature visualizations only illustrate the units; no analysis uses them.
+
+![The 24 curve units](figures/neurons_featvis.png)
+
+*The 10 `mixed3b` curve units that are swapped and the 14 `mixed4a` curve units that are read. Each unit is labelled
+with its preferred orientation measured in E1. Icons are cropped to the square holding 99% of the readout unit's
+input-gradient mass (5×5 branch).*
+
+![Overview of the example swaps](figures/examples_overview.png)
+
+*One row per example: the base and source inputs, the 14 `mixed4a` readouts (z) for the clean base, the clean source
+and the swapped base, and the decoder's correlation with the 72 templates of the pair's cell. Dots mark the decoded
+orientation, and the band is the ±10° success window around the source's decode.*
+
+Each pair also has a flow figure. Its rows are the clean base, the clean source and the swapped base. Its columns
+are:
+- the input image;
+- the 10 `mixed3b` curve-unit maps, with the swapped 11×11 window boxed;
+- the 14 `mixed4a` readouts;
+- the decoder output.
+
+In the swapped row the maps inside the box are the source's, and everything outside the box is the base's. Only the
+window can affect the readout ([model.py](src/concept_swap/model.py#L161)). The E2 report notes what the examples
+show ([Example swaps](reports/e2_synthetic.md#example-swaps-descriptive-output-only)). The first success and the first failure
+by row number are shown here:
+
+![A successful swap, pair 153](figures/examples/success_153.png)
+
+![A failed swap, pair 2457](figures/examples/failure_2457.png)
+
+All flow figures:
+- Successes: [153](figures/examples/success_153.png), [988](figures/examples/success_988.png),
+  [1114](figures/examples/success_1114.png), [1984](figures/examples/success_1984.png),
+  [2608](figures/examples/success_2608.png), [3737](figures/examples/success_3737.png).
+- Failures: [2457](figures/examples/failure_2457.png), [3022](figures/examples/failure_3022.png),
+  [3955](figures/examples/failure_3955.png).
+- The hero pair: [hero_pair.png](figures/examples/hero_pair.png).
+
 The README example at the top ([hero_concept_swap.png](figures/hero_concept_swap.png)) is a different case. It is
 base 0°, source 90°, radius 45, width 3, dark-on-light. The source decodes to 90° and the swapped base also decodes
 to 90°.
-- The cell and source are fixed in code ([hero.py](src/concept_swap/phases/hero.py#L28-L29),
-  [line 65](src/concept_swap/phases/hero.py#L65)). That rule was committed in `8430f10` at 17:20:08, before the
+- The cell and source are fixed in code ([hero.py](src/concept_swap/phases/hero.py#L26-L27),
+  [line 68](src/concept_swap/phases/hero.py#L68)). That rule was committed in `8430f10` at 17:20:08, before the
   confirmatory H1 result was logged at 17:26:08 ([confirmatory-run log](logs/20261023_171349.log#L12)).
 - The pair comes from a full orientation sweep and is not one of the 4,608 scored pairs. This base's four scored
   sources are 50°, 120°, 200° and 325°.
