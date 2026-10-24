@@ -22,9 +22,11 @@ Numbers come from `results/e2_synthetic.json` and are tabulated in
 
 Secondary verdicts after Holm correction are in `generated/results.md`.
 
-**Caveat on H1-ridge.** As pre-registered, its effect is the projection over all 508 z-scored `mixed4a` channels.
+**Caveat on H1-ridge.** As in the registered code (the pre-registration does not name the space), its effect is the
+projection over all 508 z-scored `mixed4a` channels.
 "Supported" therefore means the whole layer moves toward the source, not that the decoded orientation does.
-Measured in the decoder's (cos, sin) output space (post-hoc), the effect is 0.573 against a null q95 of 0.126.
+Measured in the decoder's (cos, sin) output space (post-hoc), the effect is 0.573 against a rank-matched null q95 of
+0.126 (Δ-matched: 0.097).
 
 **A stricter null, checked post-hoc.** The decile-matched null partly flatters the family, which sits at the very
 top of its decile. A rank-matched null and the top-10 non-family channels by Δ leave every conclusion unchanged:
@@ -33,8 +35,14 @@ The stronger competitor is the effect-ranked non-family set below (0.201). See
 [`posthoc_robustness.md`](posthoc_robustness.md).
 
 **Clean decoding** is near-perfect, so eligibility filtering hardly matters:
-- H1: 0.996 (4574 of 4608 pairs eligible).
+- H1: 0.996 per stimulus; 4574 of 4608 pairs (99.3%) eligible.
 - Ridge and H2: 1.000.
+
+**Deviations from the pre-registration** (found after the run; no verdict changes):
+- The effect's bottom-5% denominator filter was computed over all 4608 pairs, not only the eligible ones. For H1,
+  restricting it to eligible pairs changes the effect from 0.40995 to 0.40996.
+- The descriptive random-10 null has a quarter of the matched nulls' size (500 for H1 and H4, 125 for the ridge,
+  seed and LRN runs, 250 for H2), not 500 throughout.
 
 **Permutation p-values** are at their floor: 1/(M+1) = 0.0005 with 2000 sets, 0.001 with 1000 (H2) and 0.002 with
 500.
@@ -110,7 +118,7 @@ Every verdict is unchanged.
     angle. For example, k = 1 predicts −36° and observes −8°.
   - k = 5 is the exception at 62%: the prediction is ±180° and the observed shift is −112°.
   - The mean mixes outcomes rather than describing a uniform partial shift: 34–74% of pairs keep their decoded
-    orientation, and 10–50% land within 30° of the predicted shift.
+    orientation, and 10–49% land within 30° of the predicted shift.
   - This matches partial mediation.
 - **H2 is asymmetric.**
   - Line base with arc source: the 4a curve units read "arc" in 0.807 of pairs.
@@ -171,7 +179,7 @@ These are single examples, not tests.
 
 ## Interpretation
 1. **The strong sufficiency claim fails.** Copying the 10 curve units makes the next layer's curve units decode the
-   source orientation in only about 18% of pairs (10% under the whole-layer ridge readout). Under the pre-registered
+   source orientation in only about 18% of pairs (10.5% under the whole-layer ridge readout). Under the pre-registered
    rule, H1 is falsified, robustly across seeds and LRN variants.
 2. **The family is a highly specific causal mediator.**
    - The best of 4000 matched control sets of 10 channels transfers orientation in 0.13% of pairs (null q95 ≤ 0.001).
@@ -182,29 +190,32 @@ These are single examples, not tests.
      channel 380 takes its place. Channel 380 is itself a published curve-related unit: Early Vision lists 3b:359,
      337 and 380 as its mixed3b
      ["Double Curves" family](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves).
+   - Under this curve-readout ranking, the 10 best *non-family* channels reach effect 0.201 and IIA 0.001 on the
+     confirmatory pairs. The family's margin over them is 0.209, CI [0.197, 0.221].
    - That ranking uses the 14 curve readout units, which read `mixed3b` directly and plausibly use its curves
      ([Curve Circuits](https://distill.pub/2020/circuits/curve-circuits/) shows 3b curves feeding 4a shape detectors
      and notes 4a's curve detectors sit mostly in its 5×5 branch). Under the
      whole-layer ridge readout (third audit), 8 of the top 10 are family units; every family unit ranks within the
      top 24. The best 10 non-family channels there reach a (cos, sin) effect of 0.211, against the family's 0.573.
-   - The 10 best *non-family* channels under that ranking reach effect 0.201 and IIA 0.001 on the confirmatory
-     pairs. The family's margin over them is 0.209, CI [0.197, 0.221].
    - The observational Fisher top-10 (window centre only) is a much weaker competitor (IIA 0.028).
-   - The family's ablation disrupts orientation 11–13× more often than matched ablations.
+   - The family's ablation disrupts orientation 11–13× more often than matched ablations (exploratory: 13× against
+     the pre-registered Δ-matched ablations, 11× against the post-hoc rank-matched ones).
    - "Specific" here means relative to other `mixed3b` channels. A cross-nuisance sham (post-hoc audit) checks the
      concept side: copying the family from a stimulus with the same orientation but another radius, width or
      polarity leaves the decoded orientation intact in 99.2–99.9% of stimuli.
 3. **The orientation code is shared, and whether the rest is redundant depends on the readout.**
    - For the 14 curve units, the complement alone moves the readout 59% of the way and transfers the decoded
-     orientation in 40% of pairs. Reliable transfer (IIA ≈ 0.8) takes about 80 channels.
+     orientation in 40% of pairs. Reliable transfer (IIA ≈ 0.8) takes about 80 channels under fixed per-channel
+     rankings, an upper bound on the smallest sufficient set.
    - Under the pre-registered whole-layer ridge readout, the complement transfers the decoded orientation in only
      1.9% of pairs (family: 10.5%).
    - In that decoder's (cos, sin) output space, measured in the post-hoc audit, the family carries 0.573 of the
      displacement and the complement 0.427.
    - So the other 470 channels carry the rest of the signal, but they replace the family only for the curve-unit
      readout.
-   - Effects are close to additive: family 0.410 + complement 0.590 = 1.000, and 0.573 + 0.427 = 1.000 in ridge
-     output space.
+   - The family and complement effects sum to 1.000 (0.410 + 0.590, and 0.573 + 0.427 in ridge output space). A sum
+     of 1 alone does not show additivity, because an interaction orthogonal to the base-to-source direction would not
+     appear in it. The direct test is the third audit's non-additivity ratio below.
    - This additivity is partly structural and partly empirical (third audit):
      - `maxpool4` acts per channel. In the 1×1 and pool branches of `mixed4a`, a linear 1×1 convolution follows.
        Effects there add exactly (non-additivity about 10⁻¹³). This covers 6 of the 14 readout units.
@@ -216,12 +227,13 @@ These are single examples, not tests.
    - This fits Gorton's finding of extra curve features outside the 10 neurons
      ([2024](https://arxiv.org/abs/2406.03662)).
 4. **Curvature, not just orientation, is carried.** H2 shows that inserting the family's arc activations into a line
-   image makes 4a read "arc" 81% of the time. Matched control sets do so in 3.0% on average (q95 11.4%). This
+   image makes 4a read "arc" 81% of the time. Δ-matched control sets for that direction (post-hoc audit) do so in 3.0%
+   on average (q95 11.4%). This
    favours "curve detector" over "oriented line detector" for what the family contributes downstream. The 81% vs
    0.3% split between directions is most likely a decoder property, inferred from the family's similar average
    effects in the two directions (0.418 and 0.367).
 5. **The Curve Circuits claim (3a → 3b) shows the same pattern, more weakly.** The effect is above the matched nulls
-   but IIA is only 0.058. The 3a family carries a small share of 3b's curve code: the complement reaches 0.757.
+   but family IIA is only 0.058 (effect 0.324); the complement reaches IIA 0.757 (effect 0.677).
 
 ## Learnings and issues during E2
 - **The pilot** (jitter seeds 0/100) already showed IIA ≈ 0.16 with null q95 ≈ 0.001. We kept the thresholds that
@@ -235,5 +247,6 @@ These are single examples, not tests.
   `empty_cache()` after full forward passes, and set the batch size to 64.
 - **Quick-mode seeds overlapped the confirmatory seeds** in the first smoke test. We offset them (+100) before any
   E2 smoke run touched confirmatory data. One E1 smoke run on a selection-split subset is disclosed in the
-  pre-registration.
+  pre-registration. The offset did not cover the Imagenette split: quick E3 runs used about 99 confirmatory-half
+  photos until this was fixed (erratum, [`all_experiments.md`](all_experiments.md) item 12).
 - **Planned hypothesis H3 (locality) became unit tests.** For a single readout unit it is an architectural identity.

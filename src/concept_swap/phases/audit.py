@@ -18,7 +18,7 @@ from concept_swap.config import Config
 from concept_swap.log import get_logger
 from concept_swap.phases.common import interchange_experiment, make_split, save_json, success
 from concept_swap.phases.e2_synthetic import curvature, mean_ablation
-from concept_swap.phases.e3_natural import halves, mixed3b_moments
+from concept_swap.phases.e3_natural import mixed3b_moments
 from concept_swap.phases.posthoc import cos_sin_effects, decoded_iia
 
 log = get_logger(__name__)
@@ -111,7 +111,7 @@ def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     res["H2_by_direction"] = {k: v for k, v in h2.items() if k.startswith(("iia_line", "iia_arc", "line_to", "arc_to"))}
     log.info("audit (c) H2 per direction: %s", res["H2_by_direction"])
     paths = N.list_images(N.ensure_imagenette(cfg))  # checksum-verified Imagenette validation images
-    sel_paths, _ = halves(cfg, paths[::20] if cfg.quick else paths)  # same subsampling as E3 in --quick
+    sel_paths, _ = N.image_halves(cfg, paths)  # the same halves as E3
     res["relevance_size_check"] = relevance_size_check(cfg, model, fam3b, rng, sel_paths, 20 if cfg.quick else 100)
     log.info("audit (f) relevance null ablation size: %s", res["relevance_size_check"])
     save_json(cfg, "posthoc_audit", res)

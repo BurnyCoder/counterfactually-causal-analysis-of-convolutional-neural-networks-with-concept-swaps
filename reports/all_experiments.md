@@ -12,12 +12,12 @@ Details live in the per-experiment reports, which this page does not repeat:
 | Domain | Mechanistic interpretability of CNNs at the neuron level (Circuits thread). |
 | Question | Is the Circuits explanation "the `mixed3b` curve units detect curve orientation" also a *causal* explanation? Do the units mediate orientation for downstream computation ([Huang et al. 2023](https://arxiv.org/abs/2309.10312) intervention mode)? |
 | Prior knowledge | Observational and weight-based evidence from [Cammarata et al. 2020](https://distill.pub/2020/circuits/curve-detectors/) and [2021](https://distill.pub/2020/circuits/curve-circuits/). Equivariance ([Olah et al. 2020](https://distill.pub/2020/circuits/equivariance/)). SAE "missing curve detectors" ([Gorton 2024](https://arxiv.org/abs/2406.03662)). See `docs/literature_review.md`. |
-| Hypothesis H1 (strong) | Swapping the 10 units makes the next layer decode the source orientation (IIA ≥ 0.5, beating matched nulls). |
+| Hypothesis H1 (strong) | Swapping the 10 units makes the next layer decode the source orientation (IIA ≥ 0.5, margin D ≥ 0.10 over the Δ-matched null q95, and D's 95% CI above 0 against both the Δ- and branch-matched nulls). |
 | Falsifier (pre-registered) | IIA < 0.2, or a margin over the null that is confidently below 0.05. |
 | E1 (gate) | The published tuning replicates: 3b r = 0.969, 4a r = 0.847, with the orientation convention fitted on 3a only. |
 | E2 (test) | **H1 falsified**: IIA 0.177 [0.156, 0.199]. The family is still far above every matched null (IIA null q95 ≤ 0.001; effect 0.410 vs 0.098). |
-| E3 (generalisation) | The same pattern holds on natural backgrounds (IIA 0.190, effect 0.415). Under a natural rotation counterfactual the effect is 0.287 vs a null q95 of 0.075. Ablation changes 17.2% of top-1 predictions vs 9.3% for matched ablations. |
-| Refined hypothesis | **The curve family is a specific, partial mediator of a shared orientation code.** A causal ranking of all 480 channels picks 9 of its 10 units as the top 10 for the 4a curve units, and 8 of 10 for a whole-layer decoder. It carries 41% of the curve-unit displacement and 57% of the whole-layer decoded-orientation displacement. The rest sits in many other channels (about 80 needed for IIA ≈ 0.8). Whether they can replace the family depends on the readout: complement IIA 0.40 for the 4a curve units, 0.019 for the whole-layer ridge decoder. Effects add almost exactly (about 0.04 per unit): exactly by architecture for the 6 1×1-branch readout units, empirically (within 1.8%) for the 8 5×5-branch units. The family carries curvature evidence that 4a curve units use (H2: line → arc flips 81%, matched-null q95 11%). |
+| E3 (generalisation) | The same pattern holds on natural backgrounds (IIA 0.190, effect 0.415). Under a natural rotation counterfactual the effect is 0.287 vs a null q95 of 0.075. Ablation changes 17.2% of top-1 predictions vs 9.3% for matched ablations (pre-registered as exploratory, without an inferential claim). |
+| Refined hypothesis | **The curve family is a specific, partial mediator of a shared orientation code.** It carries 41% of the curve-unit displacement. Post hoc, a causal ranking of all 480 channels picks 9 of its 10 units as the top 10 for the 4a curve units and 8 of 10 for a whole-layer decoder, and the family carries 57% of the whole-layer decoded-orientation displacement. The rest sits in many other channels: about 80 for IIA ≈ 0.8 under fixed per-channel rankings, an upper bound on the smallest sufficient set. Whether they can replace the family depends on the readout: complement IIA 0.40 for the 4a curve units, 0.019 for the whole-layer ridge decoder. The effect grows by about 0.04 per family unit (dose-response). Family and complement effects add exactly by architecture for the 6 1×1-branch readout units and within 1.8% for the 8 5×5-branch units (third audit, post hoc). The family carries curvature evidence that 4a curve units use (H2: line → arc flips 81%; post-hoc per-direction matched-null q95 11%). |
 
 ## Overview of all pre-registered tests
 
@@ -29,8 +29,8 @@ Details live in the per-experiment reports, which this page does not repeat:
 | H4 3a → 3b curve units | 0.058 | 0.324 | 0.169 | supported |
 | Composited (natural backgrounds) | 0.190 | 0.415 | 0.104 | supported |
 | H5 natural rotation | 0.072 | 0.287 | 0.075 | supported |
-| H1, jitter seeds 3 / 4 | 0.172 / 0.171 | 0.410 / 0.407 | 0.094 / 0.104 | falsified (same as H1) |
-| H1, Lucent default LRN | 0.172 | 0.406 | 0.096 | falsified (same as H1) |
+| H1, jitter seeds 3 / 4 (robustness, exploratory) | 0.172 / 0.171 | 0.410 / 0.407 | 0.094 / 0.104 | falsified (H1 rule) |
+| H1, Lucent default LRN (robustness, exploratory) | 0.172 | 0.406 | 0.096 | falsified (H1 rule) |
 
 "Supported" for a secondary hypothesis means the effect margin over the activation-change-matched null q95 has a
 95% CI above 0 and a Holm-adjusted p < 0.05. All Holm-adjusted p ≤ 0.004.
@@ -59,7 +59,7 @@ Details live in the per-experiment reports, which this page does not repeat:
   family sits in the top 4% by activation change. Matching on activation change Δ is the honest bar.
 - **Statistics.** We used the pigeonhole bootstrap because pairs share images, and we recompute the null q95 inside
   every replicate. We dropped the plan's "power analysis with seeds": the model is deterministic, so seeds only
-  change jitter. Instead we did a precision analysis (target CI half-width ≤ 0.03; achieved about 0.021) and three
+  change jitter. Instead we did a precision analysis (target CI half-width ≤ 0.03; pilot 0.022, confirmatory 0.021) and three
   jitter seeds as a stability check.
 - **Hyperparameters.**
   - 72 orientations at 5° steps; decoder tolerance 10°.
@@ -67,8 +67,11 @@ Details live in the per-experiment reports, which this page does not repeat:
     0.88 and 0.61 at radius 10 (`pilot/pilot_tuning_radii.log`).
   - Widths {3, 5}; arc span 120° (under 180°, so an arc never reads as a full circle).
   - 4 sources per base with |Δθ| ≥ 30°, so that base and source decodes are clearly distinct.
-  - 2000 null sets, for p ≈ 5·10⁻⁴ resolution.
-  - Effect denominator filter: the bottom 5% of pairs.
+  - 2000 null sets, for p ≈ 5·10⁻⁴ resolution. The descriptive random null has a quarter as many per test (500 for H1
+    and H4, 125–250 elsewhere), not the pre-registration's 500 (deviation; it enters no verdict).
+  - Effect denominator filter: the bottom 5% of pairs, computed over all pairs rather than the eligible pairs the
+    pre-registration names (deviation). For H1, restricting it to eligible pairs changes the effect from 0.40995 to
+    0.40996 (per-pair export).
 
 ### Problems and fixes, in chronological order
 1. **Lucent's LRN constants are not TensorFlow's.**
@@ -87,13 +90,18 @@ Details live in the per-experiment reports, which this page does not repeat:
 3. **PIL draws arc strokes inward.** The first renderer was off by half a stroke width. A unit test caught it, and
    we fixed the bounding radius.
 4. **Cropped vs full forward differed by up to about 3e-3 in fp32,** about 1e-5 of the value range. We traced this
-   to cuDNN choosing different algorithms for different input sizes. In fp64 the crop is exact: a re-check measured
-   a difference of 0, and the test asserts ≤ 1e-9. The test now checks fp64.
+   to cuDNN choosing different algorithms for different input sizes. In fp64 the crop equals the same block run on the
+   full map: a re-check measured a difference of 0, and the test asserts atol = rtol = 1e-9. The test now checks fp64.
+   - Erratum: the frozen pre-registration (§3) says the crop "equals the full forward pass, as shown by the fp64 unit
+     test". More precisely, the fp64 test compares the crop with the same block run on the full map. That block matches
+     Lucent's forward pass within 1e-4 in fp32, and a separate fp64 test checks that patches outside the window leave
+     the readout unchanged (`tests/test_model.py`).
 5. **The first pilot ran for over 15 minutes, CPU-bound.** py-spy showed the process blocked on GPU
    synchronisation, because the 8 GB WDDM GPU was paging. Fixes: gather only the patched channels, call
    `empty_cache()`, and use batch 64. Afterwards: 0.15 s per null set.
 6. **Quick-mode seeds equalled the confirmatory seeds.** We offset them by 100 before any interventional smoke test
-   touched confirmatory data, and disclosed the E1 smoke run.
+   touched confirmatory synthetic stimuli, and disclosed the E1 smoke run. The Imagenette split was not covered by
+   the offset; see item 12.
 7. **The pilot already showed IIA ≈ 0.16.** We did not lower the IIA threshold. The primary result is therefore
    reported as "falsified", with the specificity findings as pre-registered secondaries and the complement results as descriptive references.
 8. **A dose-response plot used a categorical x-axis for K = 1, 2, 3, 5, 7, 10,** which distorts the linear trend.
@@ -101,7 +109,7 @@ Details live in the per-experiment reports, which this page does not repeat:
 
 9. **The independent code review found no result-changing bug, but did find weak spots.** The decile-matched null
    is soft at the extreme tail; the H1-ridge effect lives in z-space; H5's ±45° rotations add blur; the bootstrap
-   is somewhat narrow; and absolute local paths had leaked into the results.
+   may be somewhat narrow; and absolute local paths had leaked into the results.
    - The first three were checked with post-hoc analyses, and the conclusions are unchanged.
    - The bootstrap issue is documented as a limitation.
    - The paths were scrubbed, and the code now writes repo-relative paths.
@@ -132,11 +140,27 @@ Details live in the per-experiment reports, which this page does not repeat:
       - Additivity is exact only in the 1×1 and pool branches; elsewhere it is empirical.
     - Details: [posthoc_robustness.md](posthoc_robustness.md#third-round-independent-audit-not-pre-registered).
 
+12. **Quick-mode smoke runs used confirmatory-half Imagenette photos** (found by the fourth, independent
+    fact-check).
+    - `--quick` subsampled every 20th validation photo and then split them with the quick seed 101, so 50 of its 99
+      "selection" and 49 of its 98 "test" photos belonged to the real confirmatory half (seed 1).
+    - Two of these smoke runs predate the pre-registration (17:13:04). `logs/20261023_170533.log` and
+      `logs/20261023_170800.log` (untracked) ran the composited test, H5 and, in the second, the relevance ablation
+      on them, with 20 null sets and tiny grids. They logged composited IIA 0.164, H5 IIA 0.029 and a relevance flip rate of 0.122 on 98
+      photos.
+    - Erratum: the frozen pre-registration says the confirmatory Imagenette half had "never been passed through an
+      intervention". About 99 of its 1962 photos (5%) had, at smoke-test settings. No threshold, null size or
+      analysis was changed after these runs, and the synthetic confirmatory seeds (2, 3, 4) were never touched.
+    - Quick runs after registration, including this fact-check's reproduction check, touched the same photos. No
+      decision depends on them.
+    - Fixed: `natural.image_halves` now draws quick photos only from the real selection half (tested in
+      `tests/test_natural.py`). The full run's halves are unchanged.
+
 ### What did not work, or remains open
 - **Strict sufficiency of the 10 units.** No tested 10-channel set reached IIA ≥ 0.5. The top 20 channels by
   single-channel patching effect reach 0.485 and the top 40 reach 0.693 (post-hoc audit).
 - **The family-rotation activation swap** moves the circular-mean decoded orientation in the right direction, but
-  only 21–39% of the predicted angle (k = 5 aside). That mean mixes 34–74% unchanged pairs with 10–50% that land
+  only 21–39% of the predicted angle (k = 5 aside). That mean mixes 34–74% unchanged pairs with 10–49% that land
   within 30° of the prediction. This is a channel reassignment within the family, inspired by the concept-swap tests
   of Gurnee et al. 2026.
 - **Open:** whether SAE features ([Gorton 2024](https://arxiv.org/abs/2406.03662)) or a learned subspace

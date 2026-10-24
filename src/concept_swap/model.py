@@ -27,11 +27,12 @@ BRANCH_WIDTHS = {"mixed3a": (64, 128, 32, 32), "mixed3b": (128, 192, 96, 64), "m
 # the window size n=2*5+1, hence alpha*11 (TF formula: https://www.tensorflow.org/api_docs/python/tf/nn/local_response_normalization;
 # same derivation in https://github.com/greentfrapp/lucent/pull/51#issuecomment-6345247394).
 TF_LRN = dict(size=11, alpha=11 * 9.999999747378752e-05, beta=0.5, k=2.0)
-LUCENT_LRN = dict(size=9, alpha=9.99999974738e-05, beta=0.5, k=1)  # values hardcoded in Lucent's forward()
+LUCENT_LRN = dict(size=9, alpha=9.99999974738e-05, beta=0.5, k=1)  # hardcoded in Lucent's forward(), lines 204 and 210 of
+# https://github.com/greentfrapp/lucent/blob/2ccc434d80097e58f53cb2a70c60f72902fe93af/lucent/modelzoo/inceptionv1/InceptionV1.py
 _ACTIVE_LRN = {"params": TF_LRN}  # set by each model's forward pre-hook, read by the shim below
 
 # Readout positions: 4a unit (6,6) and the 3b unit (13,13) it is centred on. By stride arithmetic both have their
-# receptive-field centre at input pixel 8*13+7 = 111 (checked empirically by `rf_center` in the tests).
+# receptive-field centre at input pixel 8*13+7 = 111 (the tests check the 4a unit with `rf_center`, via its 1x1 branch).
 READOUT_POS = {"mixed3b": 13, "mixed4a": 6}
 WEIGHTS_SHA256 = "44f1f1e0734fa77edd0ab948c0d4d5c9ab6f4efce10b02d793fd14ab2d71a73b"  # inception5h.pth used for the reported run
 
@@ -56,7 +57,8 @@ _lucent_module.F = SimpleNamespace(**{**vars(F), "local_response_norm": _shim_lr
 def load_inceptionv1(device: str = "cuda", lrn_mode: str = "tf", redirected_relu: bool = False) -> torch.nn.Module:
     """Load pretrained InceptionV1 (eval mode) with the requested LRN constants.
 
-    Local: weights come from ProGamerGov's conversion of the Lucid graph (downloaded and cached by torch.hub).
+    Local: weights come from ProGamerGov's PyTorch conversion of TensorFlow's inception5h tutorial graph, the network
+    Lucid's InceptionV1 wraps (https://github.com/ProGamerGov/pytorch-old-tensorflow-models; cached by torch.hub).
     Plain ReLU by default; `redirected_relu=True` swaps in Lucid's redirected-ReLU gradient, which only matters for
     feature visualisation (its forward is the same clamp, see tests/test_model.py).
     Global context: all experiments use lrn_mode="tf"; "lucent" exists for the LRN sensitivity analysis.
@@ -188,7 +190,7 @@ def _input_grad(model: torch.nn.Module, layer: str, device: str, n: int = 16, br
     x = torch.rand(n, 3, 224, 224, device=device, generator=torch.Generator(device).manual_seed(0)).requires_grad_(True)  # seeded noise
     p, acts = READOUT_POS[layer], {}  # readout position; dict filled by the hook
     h = getattr(model, f"{layer}_{branch}_pre_relu_conv").register_forward_hook(lambda m, a, o: acts.__setitem__("o", o))
-    model(preprocess(x))  # forward with autograd on (hook keeps the non-detached 1x1-branch output)
+    model(preprocess(x))  # forward with autograd on (hook keeps the non-detached branch output)
     h.remove()  # stop recording
     acts["o"][:, :, p, p].sum().backward()  # sum over images and the branch's channels of the readout unit
     return x.grad.abs().sum((0, 1))  # (224, 224) gradient magnitude

@@ -17,7 +17,7 @@ from concept_swap.config import Config
 from concept_swap.log import get_logger
 from concept_swap.phases.common import interchange_experiment, make_split, save_json, summarize
 from concept_swap.phases.e2_synthetic import curvature
-from concept_swap.phases.e3_natural import composited, halves, rotation
+from concept_swap.phases.e3_natural import composited, rotation
 
 log = get_logger(__name__)
 RANK = dict(null_kinds=("rank_matched",))  # only the post-hoc null (the pre-registered nulls are in results/e2, e3)
@@ -92,7 +92,7 @@ def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     res["H4"] = compact(summarize(cfg, ex4, rng, "H4 vs rank-matched null"))
     del ex4, sel3, test3
     paths = N.list_images(N.ensure_imagenette(cfg))  # checksum-verified Imagenette validation images
-    sel_paths, test_paths = halves(cfg, paths[::20] if cfg.quick else paths)  # same subsampling as E3 in --quick
+    sel_paths, test_paths = N.image_halves(cfg, paths)  # the same halves as E3
     res["composited"] = compact(composited(cfg, model, fam["mixed3b"], fam4a, rng, sel_paths, **RANK))
     res["H5"] = compact(rotation(cfg, model, fam["mixed3b"], fam4a, rng, sel_paths, test_paths, **RANK))
     exact = replace(cfg, rotations=(-90, 90, 180))  # PIL rotates square images by these angles with exact transposes

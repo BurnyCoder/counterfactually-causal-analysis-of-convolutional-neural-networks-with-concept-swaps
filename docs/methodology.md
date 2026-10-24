@@ -69,11 +69,18 @@ The exact frozen protocol (thresholds, null sizes, seeds) is in `reports/preregi
   within each nuisance cell, so clean decoding accuracy is also a small generalisation check.
 - **Pilot seeds (0, 100):** used to choose radii and estimate precision, then discarded and disclosed in the
   pre-registration.
-- **`--quick` smoke tests:** use seeds 101–104, so development runs never see confirmatory stimuli.
+- **`--quick` smoke tests:** use seeds 101–104, so development runs never see confirmatory synthetic stimuli. Their
+  Imagenette photos now come only from the real selection half (`natural.image_halves`). Before that fix, quick runs
+  also used about 99 confirmatory-half photos, two of them before registration (erratum in
+  [`reports/all_experiments.md`](../reports/all_experiments.md)).
+- **Other seeds in code:** the composited grids use jitter seeds 1500/1501 (selection) and 2500/2501 (confirmatory);
+  the cross-nuisance sham's donors come from stability seed 3; the Imagenette halves and the dose-response subsets use
+  `default_rng(selection_seed)` and `default_rng(confirm_seed)`.
 
 ## Why rotation for natural images
-- Natural photos have no orientation label. Rotating a photo about the readout's RF centre changes the orientation
-  of every curve the unit sees and nothing else about the content.
+- Natural photos have no orientation label. Rotating a photo about the readout's RF centre rotates every oriented
+  feature the unit sees (curves, edges, textures) without changing which content is present. It therefore changes
+  far more than curve orientation.
 - Olah et al.'s [equivariance](https://distill.pub/2020/circuits/equivariance/) account predicts the curve family's
   code rotates accordingly.
 - The test asks whether the family's code from the rotated photo moves the 4a curve readout to the rotated version.

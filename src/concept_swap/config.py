@@ -12,6 +12,7 @@ from pathlib import Path  # path handling: https://docs.python.org/3/library/pat
 from dotenv import load_dotenv  # reads .env into os.environ: https://github.com/theskumar/python-dotenv
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root = two levels above src/concept_swap/
+QUICK_SEED_OFFSET = 100  # `--quick` adds this to every seed, so smoke tests never render confirmatory stimuli
 
 
 def _ints(s: str) -> tuple[int, ...]:
@@ -27,7 +28,7 @@ class Config:
     """All tunable settings of the pipeline (frozen so phases cannot mutate shared state).
 
     Local: plain typed fields with the defaults mirrored in `.env.example`.
-    Global context: passed to every phase; `asdict(cfg)` is logged and stored with each result file.
+    Global context: passed to every phase; `as_log_dict()` is logged and stored with each result file.
     """
 
     device: str = "cuda"  # torch device string
@@ -41,7 +42,6 @@ class Config:
     widths: tuple[int, ...] = (3, 5)  # stroke widths in pixels
     arc_span_deg: float = 120.0  # angular extent of each arc (< 180 deg)
     jitter_px: int = 2  # max random translation of a stimulus
-    pilot_seed: int = 0  # pilot split (development only, discarded)
     selection_seed: int = 1  # selection split (fit stats, templates, nulls)
     confirm_seed: int = 2  # confirmatory split (all tests)
     stability_seeds: tuple[int, ...] = (3, 4)  # extra confirmatory splits for a stability check
@@ -51,7 +51,7 @@ class Config:
     n_null_sets: int = 2000  # random neuron sets per null distribution
     n_boot: int = 2000  # bootstrap replicates
     batch_size: int = 64  # full-network forward batch (small: the 8 GB laptop GPU must also hold cached windows)
-    imagenette_url: str = "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz"  # fast.ai mirror
+    imagenette_url: str = "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz"  # fast.ai's download (github.com/fastai/imagenette)
     rotations: tuple[int, ...] = (-90, -45, 45, 90, 180)  # natural-image rotation angles in degrees
     example_counts: tuple[int, ...] = (6, 3)  # random H1 successes, failures drawn in the example figures
     example_seed: int = 0  # default_rng seed of that draw (the README's six successes use 0)
@@ -64,10 +64,11 @@ class Config:
         Local: fewer orientations/radii/null sets. Global context: lets `main.py --quick` exercise the
         full pipeline end-to-end in minutes without touching the confirmatory settings.
         """
-        # Seeds are offset by 100 so smoke tests never see the confirmatory stimuli (no peeking before pre-registration).
+        # Seeds are offset so smoke tests never see the confirmatory stimuli (no peeking before pre-registration);
+        # natural.image_halves keeps the quick Imagenette photos inside the real selection half.
         return replace(self, quick=True, n_theta=24, radii=self.radii[:2], widths=self.widths[:1],
-                       n_null_sets=20, n_boot=50, sources_per_base=2, featvis_steps=32, selection_seed=self.selection_seed + 100,
-                       confirm_seed=self.confirm_seed + 100, stability_seeds=tuple(s + 100 for s in self.stability_seeds),
+                       n_null_sets=20, n_boot=50, sources_per_base=2, featvis_steps=32, selection_seed=self.selection_seed + QUICK_SEED_OFFSET,
+                       confirm_seed=self.confirm_seed + QUICK_SEED_OFFSET, stability_seeds=tuple(s + QUICK_SEED_OFFSET for s in self.stability_seeds),
                        results_dir=self.results_dir / "quick", figures_dir=self.figures_dir / "quick")
 
     def as_log_dict(self) -> dict:
@@ -98,7 +99,6 @@ def load_config(env_file: Path | None = None) -> Config:
         widths=_ints(env("WIDTHS", ",".join(map(str, base.widths)))),
         arc_span_deg=float(env("ARC_SPAN_DEG", base.arc_span_deg)),
         jitter_px=int(env("JITTER_PX", base.jitter_px)),
-        pilot_seed=int(env("PILOT_SEED", base.pilot_seed)),
         selection_seed=int(env("SELECTION_SEED", base.selection_seed)),
         confirm_seed=int(env("CONFIRM_SEED", base.confirm_seed)),
         stability_seeds=_ints(env("STABILITY_SEEDS", ",".join(map(str, base.stability_seeds)))),

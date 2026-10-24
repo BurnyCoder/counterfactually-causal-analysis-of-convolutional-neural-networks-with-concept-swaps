@@ -34,6 +34,9 @@ graph TD
   AU2 --> PH
   AU2 --> E3
   PH --> COMMON
+  PH --> NAT
+  AU --> NAT
+  AU2 --> NAT
   PH --> E2
   PH --> E3
   HERO --> COMMON
@@ -62,6 +65,10 @@ graph TD
   E2 --> R2[(results/e2_synthetic.json)]
   E3 --> R3[(results/e3_natural.json)]
   R1 --> REP
+  R1 -.->|E2 run alone| E2
+  R1 --> EXA
+  R2 --> EXA
+  REP --> ST
   R2 --> REP
   R3 --> REP
   PH --> R4[(results/posthoc_robustness.json)]
@@ -71,6 +78,8 @@ graph TD
   AU2 --> R6[(results/posthoc_audit2.json)]
   R6 --> REP
   REP --> MD[(reports/generated/results.md<br/>numbers.tex)]
+  MD --> EXP
+  R2 --> EXP
 ```
 
 ## What happens when you run `uv run python main.py`
@@ -96,6 +105,7 @@ graph TD
      and the Lucent-LRN model.
 5. **E3, natural images (about 16 minutes).**
    - Download Imagenette-320 once (342 MB).
+   - Split the validation images into seeded selection and confirmatory halves (`natural.image_halves`).
    - Composite arcs onto photo backgrounds and rerun H1.
    - For curve-present photos, use the rotated photo as the source (H5).
    - Mean-ablate the family over whole maps and count changes in the network's top-1 prediction.
@@ -116,8 +126,8 @@ graph TD
 
 - **Cropped-window recomputation.** Thousands of null sets × 4608 pairs would mean millions of full forward passes.
   We re-run only the block between the patched layer and the readout, on the receptive-field window.
-  `tests/test_model.py` checks that this equals the full network in float64: it asserts ≤ 1e-9, and a re-check
-  measured a difference of 0.
+  `tests/test_model.py` checks in float64 that this equals the same block run on the full map (atol = rtol = 1e-9;
+  a re-check measured a difference of 0), and in fp32 that the block matches Lucent's forward pass within 1e-4.
 - **One generic experiment function.** `interchange_experiment` serves every hypothesis. Only the splits, pairs,
   family, readout and labels change, which keeps H1, H2, H4, H5 and the robustness runs comparable.
 - **No hand-copied numbers.** Reports quote `reports/generated/results.md`, which `report_tables.py` writes from

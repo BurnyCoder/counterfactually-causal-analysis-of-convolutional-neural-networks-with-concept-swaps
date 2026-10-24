@@ -24,7 +24,8 @@
 3. **Relevance (exploratory).**
    - Mean-ablate the family over the whole 28×28 `mixed3b` map, using the selection-half mean.
    - Run all 1962 confirmatory photos through the full network.
-   - Count changes of the top-1 class among 1008, and compute KL(clean ‖ ablated).
+   - Count changes of the top-1 class among 1008 (the [Lucid model's output size](https://github.com/tensorflow/lucid/blob/master/lucid/modelzoo/other_models/InceptionV1.py)),
+     and compute KL(clean ‖ ablated).
    - Compare against 100 null ablations of 10 channels, matched to the family on activation variance.
 
 ## Results
@@ -58,11 +59,13 @@
 - **H5's clean accuracy (1.000) is automatic,** because each photo's own clean versions are its templates.
 - **Interpolation blur does not matter.** PIL rotates ±45°, and ±90° on non-square images, bilinearly, while the 0°
   base and the 180° rotation are exact.
-  - Repeating H5 on square crops with exact −90/90/180° transposes gives effect 0.336 (null q95 0.077) and IIA 0.108.
+  - Repeating H5 on square crops with exact −90/90/180° transposes gives effect 0.336 (rank-matched null q95 0.077;
+    Δ-matched 0.079) and IIA 0.108.
   - On the same three angles, the original rotations give 0.335 and 0.108: the difference is 0.000,
     CI [−0.001, 0.001] (third audit).
-  - The lower pre-registered numbers (0.287, 0.072) come from the ±45° rotations, where the family transfers least.
-    They also come from the two extra templates per photo, not from blur.
+  - The lower pre-registered effect (0.287) comes from including the ±45° rotations, where the family transfers
+    least. The lower IIA (0.072) also reflects the two extra templates per photo (6 versions instead of 4). Neither
+    comes from blur.
   - At ±45° blur cannot be removed, because no rotation by 45° is exact.
 - **The composited test reuses the same 32 backgrounds in both splits,** so it generalises across jitter only.
 
@@ -72,9 +75,11 @@
 - **On natural photos the family is again specific but small in sufficiency.**
   - Copying it from the rotated photo moves the 4a curve code 29% of the way toward the rotated version (null q95
     7.5%). The readout picks the rotated version in only 7% of pairs.
-  - The complement, which carries everything else that changed (texture, edges, colour layout), dominates at 85%.
+  - The complement, which carries everything else that changed (texture, edges, colour layout), dominates: IIA 0.847,
+    effect 0.710.
   - This is expected: rotating a photo changes much more than curve orientation.
-- **End to end, the family is relevant to the network's decisions.** Ablating these 10 of 480 `mixed3b` channels
+- **End to end, the family is relevant to the network's decisions** (pre-registered as exploratory, without an
+  inferential claim). Ablating these 10 of 480 `mixed3b` channels
   changes the 1008-way prediction about 1.8 times as often as ablating matched channels (17.2% vs 9.3%).
   - This is relevance, not orientation-specific evidence.
   - It is in line with the preliminary removal experiment of
@@ -91,6 +96,9 @@
   - We compare predictions with the network's own clean predictions. This avoids mapping Imagenette labels onto
     Lucid's 1008-class label order.
   - Pixels are never redistributed.
+- **Quick-mode runs used confirmatory-half photos** until this was fixed: about 99 of the 1962 confirmatory photos,
+  including two smoke runs before registration (erratum, [`all_experiments.md`](all_experiments.md) item 12). The
+  full run's halves are unchanged.
 - **"Curve-absent" initially selected zero images.** Many crops have exactly zero family response because of the
   ReLU, so `< q25` was empty. We changed it to `≤ q25` before the confirmatory run (it is an exploratory contrast).
 - **Rotation geometry.** The shorter side is resized to 332 px, so a 224 crop rotated by any angle stays inside the

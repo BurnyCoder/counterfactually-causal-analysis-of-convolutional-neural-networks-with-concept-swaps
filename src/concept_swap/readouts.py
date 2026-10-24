@@ -1,7 +1,7 @@
 """Readouts that turn downstream activations into the concept value (curve orientation) or an effect size.
 
 Local: z-scoring, a nearest-template orientation decoder over a neuron family, a ridge (cos, sin) decoder over a
-whole layer, and the normalized patching effect.
+whole layer, and the reference definition of the normalized patching effect.
 Global context: these implement Huang et al.'s behaviour map tau (https://arxiv.org/abs/2309.10312): the
 intervention succeeds when tau(patched base) = tau(source). For a CNN without an orientation-valued output, tau is
 read from the next layer's curve family (primary) or from the whole next layer (secondary, non-circular).
@@ -94,7 +94,10 @@ def denominator_mask(rb: np.ndarray, rs: np.ndarray, q: float = 0.05) -> np.ndar
 def normalized_effect(rp: np.ndarray, rb: np.ndarray, rs: np.ndarray, w: np.ndarray | None = None) -> float:
     """Ratio-of-sums patching effect sum<rp-rb, rs-rb> / sum|rs-rb|^2: 0 = patch did nothing, 1 = output became the
     source's (projection onto the base->source direction; Heimersheim & Nanda 2024, https://arxiv.org/abs/2404.15255,
-    recommend such continuous, roughly linear metrics). `w` are optional per-pair (bootstrap) weights."""
+    recommend such continuous, roughly linear metrics). `w` are optional per-pair (bootstrap) weights.
+
+    This is the tested reference definition; `phases.common.summarize` computes the same ratio of sums vectorised over
+    neuron sets and bootstrap replicates."""
     w = np.ones(len(rb)) if w is None else w  # unweighted by default
     # numerator: how far the patched readout moved along the base->source direction; denominator: that direction's length^2
     return float((w * ((rp - rb) * (rs - rb)).sum(-1)).sum() / (w * ((rs - rb) ** 2).sum(-1)).sum())
