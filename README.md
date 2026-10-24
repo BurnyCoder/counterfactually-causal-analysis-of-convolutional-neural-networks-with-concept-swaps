@@ -10,18 +10,31 @@ in the style of [Huang et al. 2023](https://arxiv.org/abs/2309.10312) and [Baeum
 3. Check whether the next layer's curve units now represent the source orientation.
 4. Compare the curve family against thousands of matched control neuron sets, using a pre-registered decision rule.
 
-The swapped and the read units are different channels of two consecutive Inception blocks, separated only by the
-parameter-free max-pool `maxpool4` ([`model.py`](src/concept_swap/model.py)). The 10 published `mixed3b` curve units
-([data](data/circuits/README.md)) are overwritten with the source image's activations across the whole 11×11
-`mixed3b` window that the readout unit, `mixed4a` (6,6), can see. The 14 published `mixed4a` curve units are never set
-directly. They are recomputed from the patched window by the unchanged pretrained `maxpool4 → mixed4a` block (frozen
-weights, no retraining), which [`tests/test_model.py`](tests/test_model.py) checks against the full forward pass. The
-other 470 of the 480 `mixed3b` channels keep the base image's values, and they also carry orientation: swapped on their
-own, they transfer the decoded orientation in 40.3% of pairs
-([results.md](reports/generated/results.md?plain=1#L52)). So `mixed4a` receives conflicting evidence: the source's
-orientation from the curve family and the base's from the other 470 channels. The primary test asks whether the 14
-curve units then decode to within 10° of the clean source's orientation
-([preregistration.md](reports/preregistration.md?plain=1#L62-L77)).
+The swapped and the read units are channels of two consecutive Inception blocks, `mixed3b` and `mixed4a`. Only the
+parameter-free max-pool `maxpool4` (3×3, stride 2) sits between them
+([Lucent's forward pass](https://github.com/greentfrapp/lucent/blob/2ccc434d80097e58f53cb2a70c60f72902fe93af/lucent/modelzoo/inceptionv1/InceptionV1.py#L246-L249)).
+The 10 published `mixed3b` curve units ([data](data/circuits/README.md)) are overwritten with the source image's
+post-ReLU activations at every position of the 11×11 `mixed3b` window that the readout unit, `mixed4a` (6,6), can see
+([model.py](src/concept_swap/model.py#L163-L176), [interventions.py](src/concept_swap/interventions.py#L67-L70),
+[locality test](tests/test_model.py#L112-L128)). The 14 published `mixed4a` curve units are never set directly. Their
+pre-ReLU values are recomputed from the patched window by `maxpool4` and the pretrained `mixed4a` convolutions, with
+frozen weights and no retraining ([model.py](src/concept_swap/model.py#L145-L160)).
+[`tests/test_model.py`](tests/test_model.py#L50-L72) checks this shortcut against the full forward pass on unpatched
+images in two steps: the cropped window gives the same readout as the block run on the full map (fp64, tolerance
+1e-9), and that block matches Lucent's forward pass (fp32, tolerance 1e-4). The other 470 of the 480 `mixed3b`
+channels keep the base image's values, and they also carry orientation: swapped on their own, they transfer the
+decoded orientation in 40.3% of the 4,574 eligible pairs, against 17.7% for the curve family
+([results.md](reports/generated/results.md?plain=1#L52), [L36](reports/generated/results.md?plain=1#L36)). So
+`mixed4a` receives conflicting evidence: the source's orientation from the curve family and the base's from the other
+470 channels. For the 14 readout units the two contributions add up: swapping the family moves their z-scored
+readout 0.410 of the way toward the source, swapping the other 470 channels moves it 0.590, and the two sum to 1.000
+(post-hoc non-additivity 0.011, [results.md](reports/generated/results.md?plain=1#L177)). The primary metric, IIA, is
+the fraction of eligible pairs in which the patched base's 14 curve units decode to within 10° of the orientation
+decoded from the clean source. The decoder picks the best-correlated of the 72 clean templates (5° steps) of the
+pair's nuisance cell, and a pair is eligible when its clean base and clean source both decode within 10° of their
+true orientation ([preregistration.md](reports/preregistration.md?plain=1#L62-L77)). H1 needed IIA ≥ 0.5, plus
+margins over both matched nulls, to be supported; IIA < 0.2 falsifies it
+([preregistration.md](reports/preregistration.md?plain=1#L104-L111)).
 
 ![Concept swap example](figures/hero_concept_swap.png)
 
