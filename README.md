@@ -87,9 +87,10 @@ overturning rules before its checks ran. Three outcomes:
     - For the 8 units in the 5×5 branch it is an empirical near-additivity (1.8% interaction), not a structural one.
 - **The family carries curvature evidence.** Inserting its arc activations into a line image makes the 4a curve
   units read "arc" in 81% of pairs. Matched controls do so in 3% on average, and 95% of them in under 11.4%. The
-  reverse swap rarely flips "arc" to "line" (0.3%). That asymmetry comes from the decoder, not the family: the family
-  moves the readout about as far in each direction (effect 0.418 vs 0.367), and the correlation decoder's line/arc
-  boundary sits less than halfway from the line template.
+  reverse swap rarely flips "arc" to "line" (0.3%). On average the family moves the readout about as far in each
+  direction (effect 0.418 vs 0.367), so the asymmetry most likely comes from where the correlation decoder puts its
+  line/arc boundary, not from the family. This is an inference from the average effects; no code measures the
+  boundary directly.
 
 Full write-ups:
 - [`reports/summary.md`](reports/summary.md): plain-language summary and glossary.
