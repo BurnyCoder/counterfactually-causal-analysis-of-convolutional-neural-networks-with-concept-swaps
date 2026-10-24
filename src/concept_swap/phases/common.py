@@ -57,7 +57,8 @@ def make_split(cfg: Config, model, layer: str, grid: pd.DataFrame, backgrounds: 
 
 
 def channel_delta(windows, base: np.ndarray, src: np.ndarray, chunk: int = 512) -> np.ndarray:
-    """Mean squared base->source change of every channel over the window (selection split), chunked for memory."""
+    """Squared base->source change of every channel, summed over the window positions and averaged over pairs
+    (selection split), chunked for memory."""
     tot, base, src = 0.0, np.array(base), np.array(src)  # writable copies (pandas .values are read-only views)
     for i in range(0, len(base), chunk):  # chunks bound the temporary (chunk, C, 11, 11) difference tensor
         tot = tot + ((windows[src[i:i + chunk]] - windows[base[i:i + chunk]]) ** 2).sum((0, 2, 3)).double()  # per channel
@@ -123,7 +124,7 @@ def interchange_experiment(cfg: Config, model, layer: str, sel: Split, test: Spl
     Outcome per pair and set: [decoded label of the patched base, projection numerator <zp - zb, zs - zb>].
     Success (computed in `summarize`) = decoded label within tol of decode(clean source): Huang et al.'s
     tau(M_{a<-z}(b)) = tau(M(s)). Eligible pairs: clean base and clean source both decode correctly.
-    Nulls (`null_kinds`): activation-change-matched and branch-matched (n_sets each), random (descriptive, n_sets // 4),
+    Nulls (`null_kinds`): activation-change-matched and branch-matched (n_sets each), random (descriptive, max(n_sets // 4, 20)),
     and the post-hoc rank-matched null; the post-hoc `top_delta_nonfamily` reference set is always evaluated.
     """
     lab_sel = sel.grid.theta.values if labels_sel is None else labels_sel  # labels the decoder is fitted on

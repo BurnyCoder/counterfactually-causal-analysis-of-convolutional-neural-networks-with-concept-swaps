@@ -22,7 +22,6 @@ import argparse  # command-line flags: https://docs.python.org/3/library/argpars
 import json
 
 import numpy as np
-import torch
 
 from concept_swap.config import load_config
 from concept_swap.log import get_logger, setup_logging
@@ -50,7 +49,6 @@ def main() -> None:
     log.info("log file: logs/%s", path.name)  # file name only: no absolute paths in logs
     log.info("config: %s", json.dumps(cfg.as_log_dict()))  # the full run configuration, for reproducibility
     rng = np.random.default_rng(cfg.confirm_seed)  # single RNG stream for null sets and bootstraps
-    torch.manual_seed(cfg.confirm_seed)  # torch RNG (used by rf_center's random images)
     run = lambda name: args.phase in (name, "all")  # should this phase run?
     needs_model = any(run(p) for p in PHASES[:5]) or args.phase in ("posthoc", "audit", "audit2", "export")  # report reads JSON only
     model = load_inceptionv1(cfg.device, cfg.lrn_mode) if needs_model else None

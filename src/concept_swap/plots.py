@@ -1,4 +1,4 @@
-"""Figures for the reports, paper and README (matplotlib, static PNG + one GIF).
+"""Figures for the reports, paper and README (matplotlib, static PNGs; the GIF is written by `phases/hero.py`).
 
 Local: one function per figure; a shared light style with the validated categorical palette of the dataviz
 guidance (blue = the explanation's neuron set, orange = activation-change-matched null, aqua = branch-matched null,
