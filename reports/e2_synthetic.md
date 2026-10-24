@@ -119,10 +119,13 @@ Every verdict is unchanged.
     - line → arc: null IIA mean 0.030, q95 0.114 (p = 0.001); effect 0.418 vs null q95 0.154.
     - arc → line: the effect is 0.367 vs null q95 0.130 (p = 0.001), although the decision flips almost never.
   - The decision is binary (line vs arc template), a lower bar than H1's 72-way decode.
-  - The continuous effects are nearly symmetric (0.418 vs 0.367), so the IIA asymmetry comes from the correlation
-    decoder, not the family. Measured along the line-to-arc direction, its boundary sits less than halfway from the
-    line template: a 42% move flips most lines to "arc", but a 37% move leaves arcs on the arc side. Other channels
-    also signal curvature, and that evidence stays in the arc base.
+  - The continuous effects are nearly symmetric (0.418 vs 0.367), so the IIA asymmetry most likely comes from the
+    correlation decoder, not the family. This is an inference from the average effects; no code measures the
+    decoder's boundary. In a simplified one-dimensional picture along the line-to-arc direction, the boundary would
+    sit less than halfway from the line template: an average 42% move flips most lines to "arc", but an average 37%
+    move leaves arcs on the arc side. Per-pair moves vary, and the decoder is not a threshold on that one direction,
+    so this picture is only approximate. Other channels also signal curvature, and that evidence stays in the arc
+    base.
   - The line-vs-curve Fisher top-10 includes the double-curve unit 3b:359
     ([Early Vision](https://distill.pub/2020/circuits/early-vision/#group_mixed3b_double_curves)) and reaches only
     IIA 0.016.
@@ -179,8 +182,8 @@ Every verdict is unchanged.
 4. **Curvature, not just orientation, is carried.** H2 shows that inserting the family's arc activations into a line
    image makes 4a read "arc" 81% of the time. Matched control sets do so in 3.0% on average (q95 11.4%). This
    favours "curve detector" over "oriented line detector" for what the family contributes downstream. The 81% vs
-   0.3% split between directions is a decoder property; the family's effects in the two directions are 0.418 and
-   0.367.
+   0.3% split between directions is most likely a decoder property, inferred from the family's similar average
+   effects in the two directions (0.418 and 0.367).
 5. **The Curve Circuits claim (3a → 3b) shows the same pattern, more weakly.** The effect is above the matched nulls
    but IIA is only 0.058. The 3a family carries a small share of 3b's curve code: the complement reaches 0.757.
 
