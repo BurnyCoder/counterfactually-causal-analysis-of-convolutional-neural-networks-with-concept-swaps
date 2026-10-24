@@ -24,8 +24,9 @@ between the images. All pass/fail rules were written down and published before r
    and the 10 curve neurons carry 57% of the shift.
 4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
    neurons call it a curve 81% of the time. Control groups do so 3% of the time on average. The reverse transplant
-   almost never makes a curve read as a line. That lopsidedness comes from where the readout draws its line/curve
-   boundary: the 10 neurons move the next layer about equally far in both directions.
+   almost never makes a curve read as a line. The 10 neurons move the next layer about equally far in both
+   directions on average, so the lopsidedness most likely comes from where the readout draws its line/curve boundary.
+   That is an inference; nothing measures the boundary directly.
 5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay at
    or below 0.075.
    Replacing the 10 neurons' activity with its average changes the network's final answer on 17% of photos, versus
