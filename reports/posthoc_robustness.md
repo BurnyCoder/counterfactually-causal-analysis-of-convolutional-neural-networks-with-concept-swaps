@@ -213,9 +213,10 @@ It did find one confounded post-hoc comparison and several interpretive claims t
      ([Curve Circuits](https://distill.pub/2020/circuits/curve-circuits/) shows 3b curves feeding 4a shape detectors),
      so the ranking may partly restate the weights.
    - It was never run for the whole-layer ridge readout.
-4. **The H2 asymmetry is a decoder property.**
+4. **The H2 asymmetry is most likely a decoder property.**
    - Line → arc flips 81% of pairs and arc → line 0.3%, but the continuous effects are nearly symmetric (0.418 vs 0.367).
-   - The asymmetry therefore reflects where the correlation decoder puts its line/arc boundary.
+   - The asymmetry therefore most likely reflects where the correlation decoder puts its line/arc boundary.
+   - This is an inference from the average effects; no code measures the boundary.
 5. **The family-rotation circular mean is a mixture, not a uniform partial shift.**
    - 34–74% of pairs are unchanged, and 10–50% land within 30° of the predicted shift.
 6. **E1 has no pre-registered pass threshold, and its radii were chosen on the pilot.**
