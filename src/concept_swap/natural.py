@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from concept_swap.config import Config
+from concept_swap.config import QUICK_SEED_OFFSET, Config
 from concept_swap.log import get_logger
 from concept_swap.stimuli import CENTER, SIZE
 
@@ -32,6 +32,22 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: f.read(1 << 20), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def halves(seed: int, paths: list) -> tuple[list, list]:
+    """Seeded split of the validation images into a selection half and a confirmatory half."""
+    perm = np.random.default_rng(seed).permutation(len(paths))  # fixed shuffle
+    return [paths[i] for i in perm[::2]], [paths[i] for i in perm[1::2]]  # even positions / odd positions
+
+
+def image_halves(cfg: Config, paths: list) -> tuple[list, list]:
+    """Selection and confirmatory halves of the Imagenette validation images.
+
+    Local: the real halves always use the non-quick selection seed. `--quick` keeps every 10th photo of the real
+    selection half and splits those again with its own seed, so smoke tests never pass a confirmatory photo through an
+    intervention. Global context: the one split shared by E3 and the post-hoc phases."""
+    sel, test = halves(cfg.selection_seed - (QUICK_SEED_OFFSET if cfg.quick else 0), paths)  # the reported run's halves
+    return halves(cfg.selection_seed, sel[::10]) if cfg.quick else (sel, test)  # ~200 selection photos for quick
 
 
 def ensure_imagenette(cfg: Config) -> Path:
@@ -55,7 +71,7 @@ def ensure_imagenette(cfg: Config) -> Path:
     if sha256(tgz) != IMAGENETTE_SHA256:
         raise RuntimeError(f"{tgz.name} checksum mismatch; delete it and rerun")
     with tarfile.open(tgz) as tf:
-        tf.extractall(root, filter="data")  # safe extraction of an untrusted archive (Python >= 3.12)
+        tf.extractall(root, filter="data")  # safe extraction of an untrusted archive (Python 3.12+; backported to 3.8.17+)
     assert len(list(val.glob("*/*.JPEG"))) == N_VAL, "incomplete Imagenette extraction"
     return val
 
@@ -70,7 +86,8 @@ def crop(path: Path, angle: float = 0.0, square: bool = False) -> np.ndarray:
     counter-clockwise by `angle` degrees about its centre (PIL Image.rotate, bilinear).
 
     square=True first cuts the central SHORT x SHORT square; PIL then rotates by 90/180/270 deg with an exact
-    transpose instead of bilinear resampling (Image.rotate fast path), so no interpolation blur differs from the
+    transpose instead of bilinear resampling (Image.rotate fast path, lines 2519-2520 of
+    https://github.com/python-pillow/Pillow/blob/13.0.0/src/PIL/Image.py), so no interpolation blur differs from the
     unrotated base. The 224 crop is identical either way for angle 0.
     """
     im = Image.open(path).convert("RGB")  # some Imagenette files are greyscale or CMYK

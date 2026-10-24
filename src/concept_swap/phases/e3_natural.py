@@ -24,12 +24,6 @@ from concept_swap.phases.common import Readout, Split, interchange_experiment, s
 log = get_logger(__name__)
 
 
-def halves(cfg: Config, paths: list) -> tuple[list, list]:
-    """Seeded split of the validation images into a selection half and a confirmatory half."""
-    perm = np.random.default_rng(cfg.selection_seed).permutation(len(paths))  # fixed shuffle
-    return [paths[i] for i in perm[::2]], [paths[i] for i in perm[1::2]]  # even positions / odd positions
-
-
 def as_tensor(X: np.ndarray) -> torch.Tensor:
     """(N, H, W, 3) float array -> (N, 3, H, W) tensor."""
     return torch.from_numpy(X).permute(0, 3, 1, 2)  # channels-first, as PyTorch convolutions expect
@@ -166,12 +160,10 @@ def relevance(cfg: Config, model, fam3b, rng, sel_paths: list, test_paths: list,
 def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     """Run E3; save `results/e3_natural.json` (figures are drawn by the report phase)."""
     paths = N.list_images(N.ensure_imagenette(cfg))  # checksum-verified download on first use
-    if cfg.quick:
-        paths = paths[::20]  # ~200 images for the smoke test
-    sel_paths, test_paths = halves(cfg, paths)
+    sel_paths, test_paths = N.image_halves(cfg, paths)  # --quick: ~200 photos from the real selection half only
     fam3b = Fm.load_family(cfg.data_dir, "mixed3b").neurons
     fam4a = np.array(Fm.load_family(cfg.data_dir, "mixed4a").neurons)
-    log.info("E3: %d validation images (%d selection / %d confirmatory)", len(paths), len(sel_paths), len(test_paths))
+    log.info("E3: %d validation images (%d selection / %d confirmatory)", len(sel_paths) + len(test_paths), len(sel_paths), len(test_paths))
     res = {"composited": composited(cfg, model, fam3b, fam4a, rng, sel_paths)}  # backgrounds from the selection half
     res["H5"] = rotation(cfg, model, fam3b, fam4a, rng, sel_paths, test_paths)
     res["relevance"] = relevance(cfg, model, fam3b, rng, sel_paths, test_paths, n_sets=20 if cfg.quick else 100)

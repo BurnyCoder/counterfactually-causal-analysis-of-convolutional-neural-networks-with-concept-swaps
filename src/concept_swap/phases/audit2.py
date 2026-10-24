@@ -17,7 +17,7 @@ from concept_swap.config import Config
 from concept_swap.log import get_logger
 from concept_swap.phases.audit import NONE
 from concept_swap.phases.common import interchange_experiment, make_split, save_json, success
-from concept_swap.phases.e3_natural import halves, rotation_experiment
+from concept_swap.phases.e3_natural import rotation_experiment
 from concept_swap.phases.posthoc import cos_sin_effects, decoded_iia
 
 log = get_logger(__name__)
@@ -53,7 +53,7 @@ def additivity_by_branch(model, exr: dict, test, fam4a: np.ndarray) -> dict:
                                         rd.out_idx, rd.z)  # patching nothing / F / C / everything, same code path
     dF, dC, dA = zF - z0, zC - z0, zA - z0
     groups = {k: np.arange(sl.start, sl.stop) for k, sl in M.branch_slices("mixed4a").items()}  # 4a branches
-    groups |= {"curve_units_1x1": fam4a[fam4a < 192], "curve_units_5x5": fam4a[fam4a >= 396], "curve_units_all": fam4a}
+    groups |= {f"curve_units_{b}": fam4a[np.isin(fam4a, groups[b])] for b in ("1x1", "5x5")} | {"curve_units_all": fam4a}
     ratio = lambda a, g: float((a[:, g] ** 2).sum() / (dA[:, g] ** 2).sum())  # squared size relative to the full change
     proj = lambda d, g: float((d[:, g] * dA[:, g]).sum() / (dA[:, g] ** 2).sum())  # normalized effect within the group
     return {k: dict(n_channels=int(len(g)), nonadditivity=ratio(dF + dC - dA, g), effect_family=proj(dF, g),
@@ -100,7 +100,7 @@ def run(cfg: Config, model, rng: np.random.Generator) -> dict:
     log.info("audit2 (i) additivity by mixed4a branch: %s", res["additivity_by_branch"])
     del exs, exr  # free per-set outcome arrays before the natural-image check
     paths = N.list_images(N.ensure_imagenette(cfg))  # checksum-verified Imagenette validation images
-    sel_paths, test_paths = halves(cfg, paths[::20] if cfg.quick else paths)  # same subsampling as E3 in --quick
+    sel_paths, test_paths = N.image_halves(cfg, paths)  # the same halves as E3
     res["h5_blur_matched"] = h5_blur_matched(cfg, model, fam3b, fam4a, rng, sel_paths, test_paths)
     log.info("audit2 (h) H5 blur on matched angles: %s", res["h5_blur_matched"])
     save_json(cfg, "posthoc_audit2", res)
