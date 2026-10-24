@@ -10,6 +10,11 @@ in the style of [Huang et al. 2023](https://arxiv.org/abs/2309.10312) and [Baeum
 3. Check whether the next layer's curve units now represent the source orientation.
 4. Compare the curve family against thousands of matched control neuron sets, using a pre-registered decision rule.
 
+The swapped and the read neurons are different units in consecutive layers. The 10 `mixed3b` curve units are
+overwritten, and the 14 `mixed4a` curve units are only recomputed by the ordinary forward pass (no retraining).
+The other 470 `mixed3b` channels keep the base image's values, so `mixed4a` receives conflicting evidence, and the
+test asks whether its curve units side with the swapped curve family.
+
 ![Concept swap example](figures/hero_concept_swap.png)
 
 *A fixed example, chosen by rule and not by outcome (base θ=0°, source θ=90°, radius 45, width 3, dark-on-light).
