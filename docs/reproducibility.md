@@ -25,9 +25,13 @@
   | 1 | selection |
   | 2 | confirmatory |
   | 3, 4 | stability |
-  | 101–104 | `--quick` smoke tests, which never touch confirmatory stimuli |
+  | 101–104 | `--quick` smoke tests, which never touch confirmatory synthetic stimuli (Imagenette: see below) |
+  | 1500/1501, 2500/2501 | composited-arc grids (selection / confirmatory, two replicates) |
 
-- **Minimal pairs** use `seed + 10000`.
+- **Minimal pairs** use `seed + 10000`. The cross-nuisance sham (audit) takes its donors from stability seed 3.
+- **Imagenette halves** use `default_rng(selection_seed)`. `--quick` keeps 197 photos from the real selection half
+  only (`natural.image_halves`). Before this fix, quick runs also used about 99 confirmatory-half photos (erratum in
+  `reports/all_experiments.md`).
 - **Null neuron sets and bootstraps** draw from one `numpy.random.default_rng(confirm_seed)` stream in a fixed
   phase order. Changing the order of analyses therefore changes which null sets are drawn, but not their
   distribution.
@@ -35,19 +39,26 @@
     full run.
   - Only `uv run python main.py` reproduces the reported E2/E3 numbers exactly.
   - E1 runs first, so it is reproduced either way.
+  - Checked in quick mode (fourth fact-check). `--quick` runs of the commits that produced each committed JSON
+    (`de6f002` for E1–E3, `fe33129` posthoc, `20bee7c` audit, `4d1d15e` audit2) and of `5620407` agree exactly in
+    every shared numeric field. Later commits only add fields (`lrn_lucent_mean_r`, `top_delta_nonfamily`) and write
+    image paths with `/`. The full confirmatory run itself was not repeated. The quick Imagenette split was fixed
+    afterwards, so quick E3 numbers now differ from those commits; the full run's halves are unchanged.
 - **TF32 is disabled** (`torch.backends.cudnn.allow_tf32 = False`). cuDNN may still pick different fp32 convolution
   algorithms for different input sizes.
   - In fp32, full-map and cropped-window evaluation differ by up to about 3e-3 absolute, about 1e-5 of the value
     range.
-  - In fp64 they are identical. A re-check measured a difference of 0, and
-    `tests/test_model.py::test_cropped_readout_equals_full_map` asserts ≤ 1e-9.
+  - In fp64 the cropped block equals the same block run on the full map. A re-check measured a difference of 0, and
+    `tests/test_model.py::test_cropped_readout_equals_full_map` asserts atol = rtol = 1e-9. That block matches
+    Lucent's own forward pass within 1e-4 in fp32 (same file).
   - Clean and patched readouts always use the same cropped code path.
 
 ## Data provenance
 - **`data/circuits/*.json`:** copied from
   [distillpub/post--circuits-curve-detectors](https://github.com/distillpub/post--circuits-curve-detectors)
-  (CC-BY 4.0). See `data/circuits/README.md`.
-- **Imagenette-320:** downloaded from the fast.ai S3 mirror on the first E3 run and extracted to `data/imagenette/`,
+  at commit `fa89dbf` (Distill: CC-BY 4.0 unless noted otherwise). See `data/circuits/README.md`.
+- **Imagenette-320:** downloaded from fast.ai's S3 link ([fastai/imagenette](https://github.com/fastai/imagenette)) on
+  the first E3 run and extracted to `data/imagenette/`,
   which is gitignored. Only relative file names of the confirmatory images are stored in
   `results/e3_natural.json`. The images are never redistributed, because Imagenette is an ImageNet subset.
 - **Model weights:** `inception5h.pth` comes from
@@ -55,9 +66,11 @@
   cached by `torch.hub`.
 
 ## Known platform issues and their fixes
-- **Lucent's `setup.py` fails on Windows.** It reads its README with the cp1252 codec. `pyproject.toml` sets
+- **Lucent's `setup.py` fails on Windows.** It opens its README without an encoding
+  ([setup.py at 2ccc434](https://github.com/greentfrapp/lucent/blob/2ccc434d80097e58f53cb2a70c60f72902fe93af/setup.py)),
+  so Windows reads it with the cp1252 codec. `pyproject.toml` sets
   `[tool.uv] extra-build-variables = { torch-lucent = { PYTHONUTF8 = "1" } }`.
-- **The PyPI `torch-lucent 0.1.8` pins `kornia<=0.4.1`.** We install Lucent from git (dev branch) instead.
+- **The PyPI [`torch-lucent 0.1.8`](https://pypi.org/project/torch-lucent/0.1.8/) pins `kornia<=0.4.1`.** We install Lucent from git (dev branch) instead.
 - **On an 8 GB WDDM GPU, the PyTorch caching allocator can push total use past dedicated memory.** Windows then pages
   to shared memory and kernels slow down by orders of magnitude. `interventions.collect` calls
   `torch.cuda.empty_cache()`, and the full-network batch size defaults to 64 (`BATCH_SIZE` in `.env`).

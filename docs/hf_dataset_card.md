@@ -38,7 +38,8 @@ layer, using interchange interventions ([Huang et al. 2023](https://arxiv.org/ab
 
 The headline per-pair statistic can be recomputed from `pairs_h1_confirmatory.csv`: IIA = mean of `family_success`
 over `eligible` rows. The dataset is reproducible with `uv run python main.py`, then `--phase posthoc`,
-`--phase audit`, `--phase audit2` and `--phase export` (each as `uv run python main.py --phase <name>`).
+`--phase audit`, `--phase audit2`, `--phase report` and `--phase export` (each as
+`uv run python main.py --phase <name>`).
 
 ## Not included
 - **Natural-image pixels.** Imagenette is an ImageNet subset, so it is not redistributed. `results/e3_natural.json`
