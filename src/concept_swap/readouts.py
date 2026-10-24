@@ -47,12 +47,21 @@ class TemplateDecoder:
         X = X - X.mean(1, keepdims=True)  # remove each vector's mean across units
         return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-12)  # unit length (epsilon avoids 0/0)
 
+    def correlations(self, Z: np.ndarray, c) -> tuple[np.ndarray, np.ndarray]:
+        """Template labels of cell `c` and the (rows x templates) Pearson correlations of the rows of Z with them.
+
+        Local: what `predict` maximises. Global context: the example figures plot it as the decoder's output curve.
+        """
+        T, th = self.t[c]
+        return th, self._center(Z) @ T.T  # unit-norm centred vectors: dot product = Pearson r
+
     def predict(self, Z: np.ndarray, cell: np.ndarray) -> np.ndarray:
         """Label of the best-correlated template from each row's own cell."""
         out = np.full(len(Z), np.nan)  # decoded label per row (NaN until decoded)
-        for c, (T, th) in self.t.items():  # decode each cell's rows against that cell's templates only
+        for c in self.t:  # decode each cell's rows against that cell's templates only
             m = cell == c
-            out[m] = th[np.argmax(self._center(Z[m]) @ T.T, axis=1)]  # (rows x templates) correlations -> best label
+            th, r = self.correlations(Z[m], c)
+            out[m] = th[np.argmax(r, axis=1)]  # best-correlated template's label
         assert not np.isnan(out).any(), "a row belongs to a cell without templates"
         return out
 

@@ -22,6 +22,18 @@ def test_template_decoder_recovers_orientation_per_cell():
     assert (np.abs(R.circ_dist(dec.predict(Zt, cell), theta)) <= 10).mean() > 0.95
 
 
+def test_template_correlations_are_what_predict_maximises():
+    """`correlations` exposes the per-template Pearson r of one cell: a template correlates 1 with itself, and the
+    argmax over templates is exactly the label `predict` returns."""
+    rng = np.random.default_rng(0)
+    theta, cell = np.arange(72) * 5.0, np.zeros(72, int)
+    Z = _tuned(theta, np.linspace(0, 360, 14, endpoint=False), 0.05, rng)
+    dec = R.TemplateDecoder().fit(Z, theta, cell)
+    th, r = dec.correlations(Z, 0)
+    np.testing.assert_allclose(np.diag(r), 1, atol=1e-9)
+    np.testing.assert_array_equal(th[r.argmax(1)], dec.predict(Z, cell))
+
+
 def test_ridge_decoder_recovers_orientation():
     rng = np.random.default_rng(0)
     theta = rng.uniform(0, 360, 2000)

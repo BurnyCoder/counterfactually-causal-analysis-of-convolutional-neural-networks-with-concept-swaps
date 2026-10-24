@@ -53,6 +53,9 @@ class Config:
     batch_size: int = 64  # full-network forward batch (small: the 8 GB laptop GPU must also hold cached windows)
     imagenette_url: str = "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz"  # fast.ai mirror
     rotations: tuple[int, ...] = (-90, -45, 45, 90, 180)  # natural-image rotation angles in degrees
+    example_counts: tuple[int, ...] = (6, 3)  # random H1 successes, failures drawn in the example figures
+    example_seed: int = 0  # default_rng seed of that draw (the README's six successes use 0)
+    featvis_steps: int = 512  # optimisation steps of each feature visualization (Lucent's default threshold)
     quick: bool = False  # smoke-test mode: tiny grids and few null sets
 
     def with_quick(self) -> "Config":
@@ -63,7 +66,7 @@ class Config:
         """
         # Seeds are offset by 100 so smoke tests never see the confirmatory stimuli (no peeking before pre-registration).
         return replace(self, quick=True, n_theta=24, radii=self.radii[:2], widths=self.widths[:1],
-                       n_null_sets=20, n_boot=50, sources_per_base=2, selection_seed=self.selection_seed + 100,
+                       n_null_sets=20, n_boot=50, sources_per_base=2, featvis_steps=32, selection_seed=self.selection_seed + 100,
                        confirm_seed=self.confirm_seed + 100, stability_seeds=tuple(s + 100 for s in self.stability_seeds),
                        results_dir=self.results_dir / "quick", figures_dir=self.figures_dir / "quick")
 
@@ -107,4 +110,7 @@ def load_config(env_file: Path | None = None) -> Config:
         batch_size=int(env("BATCH_SIZE", base.batch_size)),
         imagenette_url=env("IMAGENETTE_URL", base.imagenette_url),
         rotations=_ints(env("ROTATIONS", ",".join(map(str, base.rotations)))),
+        example_counts=_ints(env("EXAMPLE_COUNTS", ",".join(map(str, base.example_counts)))),
+        example_seed=int(env("EXAMPLE_SEED", base.example_seed)),
+        featvis_steps=int(env("FEATVIS_STEPS", base.featvis_steps)),
     )

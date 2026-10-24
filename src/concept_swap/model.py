@@ -53,16 +53,17 @@ _lucent_module = importlib.import_module("lucent.modelzoo.inceptionv1.InceptionV
 _lucent_module.F = SimpleNamespace(**{**vars(F), "local_response_norm": _shim_lrn})
 
 
-def load_inceptionv1(device: str = "cuda", lrn_mode: str = "tf") -> torch.nn.Module:
-    """Load pretrained InceptionV1 (eval mode, plain ReLU) with the requested LRN constants.
+def load_inceptionv1(device: str = "cuda", lrn_mode: str = "tf", redirected_relu: bool = False) -> torch.nn.Module:
+    """Load pretrained InceptionV1 (eval mode) with the requested LRN constants.
 
     Local: weights come from ProGamerGov's conversion of the Lucid graph (downloaded and cached by torch.hub).
-    `redirected_ReLU=False` because the redirected gradient only matters for feature visualisation.
+    Plain ReLU by default; `redirected_relu=True` swaps in Lucid's redirected-ReLU gradient, which only matters for
+    feature visualisation (its forward is the same clamp, see tests/test_model.py).
     Global context: all experiments use lrn_mode="tf"; "lucent" exists for the LRN sensitivity analysis.
     """
     torch.backends.cudnn.allow_tf32 = False  # full-fp32 convolutions (TF32 would add ~1e-3 relative error)
     params = {"tf": TF_LRN, "lucent": LUCENT_LRN}[lrn_mode]  # KeyError on typos is intended
-    net = inceptionv1(pretrained=True, redirected_ReLU=False).eval().to(device)  # eval(): no dropout
+    net = inceptionv1(pretrained=True, redirected_ReLU=redirected_relu).eval().to(device)  # eval(): no dropout
     ckpt = Path(torch.hub.get_dir()) / "checkpoints" / "inception5h.pth"  # where torch.hub cached Lucent's download
     if hashlib.sha256(ckpt.read_bytes()).hexdigest() != WEIGHTS_SHA256:  # torch.hub itself does not verify it
         raise RuntimeError(f"{ckpt.name} checksum mismatch; delete it so torch.hub re-downloads")
@@ -163,14 +164,44 @@ def crop_window(prev: torch.Tensor, layer: str) -> torch.Tensor:
     mixed3b (from 3a): 5x5 conv radius 2 -> rows p-2..p+2. mixed4a (from 3b): the 5x5 conv sees maxpool4 cells
     p-2..p+2, and cell q pools 3b rows 2q..2q+2, so 3b rows 2p-4..2p+6 (11 rows). The readout ends up at index 2.
     """
-    p = READOUT_POS[layer]  # readout row = column (square, centred receptive field)
-    lo, hi = (2 * p - 4, 2 * p + 7) if layer == "mixed4a" else (p - 2, p + 3)  # half-open row/col range
+    lo, hi = window_bounds(layer)
     return prev[..., lo:hi, lo:hi]  # same rows and columns
+
+
+def window_bounds(layer: str) -> tuple[int, int]:
+    """Half-open row (= column) range of the previous layer's map that `crop_window` keeps for `layer`'s readout."""
+    p = READOUT_POS[layer]  # readout row = column (square, centred receptive field)
+    return (2 * p - 4, 2 * p + 7) if layer == "mixed4a" else (p - 2, p + 3)
 
 
 def readout_from_window(model: torch.nn.Module, layer: str, window: torch.Tensor) -> torch.Tensor:
     """Pre-ReLU vector (all channels) of the readout unit of `layer`, computed from a cropped input window."""
     return run_block(model, layer, window, pre_relu=True)[:, :, 2, 2]  # index 2 = readout unit inside the crop
+
+
+def _input_grad(model: torch.nn.Module, layer: str, device: str, n: int = 16, branch: str = "1x1") -> torch.Tensor:
+    """(224, 224) magnitude of d(readout unit) / d(input), summed over `n` seeded noise images.
+
+    Local: gradient-based effective receptive field (Luo et al. 2016, https://arxiv.org/abs/1701.04128) of one
+    branch's pre-activations at the readout position. Global context: shared by `rf_center` and `rf_halfwidth`.
+    """
+    x = torch.rand(n, 3, 224, 224, device=device, generator=torch.Generator(device).manual_seed(0)).requires_grad_(True)  # seeded noise
+    p, acts = READOUT_POS[layer], {}  # readout position; dict filled by the hook
+    h = getattr(model, f"{layer}_{branch}_pre_relu_conv").register_forward_hook(lambda m, a, o: acts.__setitem__("o", o))
+    model(preprocess(x))  # forward with autograd on (hook keeps the non-detached 1x1-branch output)
+    h.remove()  # stop recording
+    acts["o"][:, :, p, p].sum().backward()  # sum over images and the branch's channels of the readout unit
+    return x.grad.abs().sum((0, 1))  # (224, 224) gradient magnitude
+
+
+def rf_halfwidth(model: torch.nn.Module, layer: str, device: str, mass: float = 0.99, branch: str = "5x5") -> int:
+    """Half-width (px) of the smallest square around the readout's RF centre that holds `mass` of |d unit / d input|.
+
+    Local: the effective RF size of the readout unit; the 5x5 branch (which holds the 3b curve family and 8 of the 14
+    4a curve units) sees the widest area. Global context: crops the feature-visualization icons to the part of the
+    image the neuron can see, as the Circuits figures do."""
+    g, c = _input_grad(model, layer, device, branch=branch).cpu().numpy(), 8 * READOUT_POS["mixed3b"] + 7  # pixel 111
+    return next(h for h in range(1, 113) if g[c - h:c + h + 1, c - h:c + h + 1].sum() >= mass * g.sum())
 
 
 def rf_center(model: torch.nn.Module, layer: str, device: str, n: int = 16) -> tuple[float, float]:
@@ -179,12 +210,6 @@ def rf_center(model: torch.nn.Module, layer: str, device: str, n: int = 16) -> t
     Local: averages gradient magnitude over `n` random images (gradient-based effective RF, Luo et al. 2016,
     https://arxiv.org/abs/1701.04128). Global context: stimuli are centred on this pixel.
     """
-    x = torch.rand(n, 3, 224, 224, device=device, generator=torch.Generator(device).manual_seed(0)).requires_grad_(True)  # seeded noise
-    p, acts = READOUT_POS[layer], {}  # readout position; dict filled by the hook
-    h = getattr(model, f"{layer}_1x1_pre_relu_conv").register_forward_hook(lambda m, a, o: acts.__setitem__("o", o))
-    model(preprocess(x))  # forward with autograd on (hook keeps the non-detached 1x1-branch output)
-    h.remove()  # stop recording
-    acts["o"][:, :, p, p].sum().backward()  # sum over images and 1x1-branch channels of the readout unit
-    g = x.grad.abs().sum((0, 1))  # (224, 224) gradient magnitude
+    g = _input_grad(model, layer, device, n)
     ys, xs = torch.meshgrid(torch.arange(224, device=device), torch.arange(224, device=device), indexing="ij")  # pixel coords
     return float((g * ys).sum() / g.sum()), float((g * xs).sum() / g.sum())  # gradient-weighted mean row and column

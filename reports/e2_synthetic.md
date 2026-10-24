@@ -133,6 +133,42 @@ Every verdict is unchanged.
 ![dose-response](../figures/e2_h1_dose.png)
 ![IIA by orientation difference](../figures/e2_h1_dtheta.png)
 
+## Example swaps (descriptive, output-only)
+The `examples` phase draws H1 pairs at random with `stats.random_rows` (seed 0): 6 of the 811 eligible successes
+and 3 of the 3,763 eligible failures, plus the README hero pair. It shows each pair flowing through the network.
+- **Inputs:** the exact input images.
+- **Swapped layer:** the full `mixed3b` maps of the 10 curve units, with the swapped 11×11 window boxed.
+- **Readout:** the 14 `mixed4a` curve-unit readouts at (6, 6).
+- **Decoder:** the correlation with each of the 72 templates of the pair's cell.
+
+Neurons are shown by Lucent feature visualizations of the single neuron at the readout position. This follows how
+the Circuits papers present units ([Cammarata et al. 2020](https://distill.pub/2020/circuits/curve-detectors/);
+method: [Olah et al. 2017](https://distill.pub/2017/feature-visualization/)).
+
+Two checks tie the figures to the scored data ([run log](../logs/20261024_024626.log)):
+- The recomputed IIA equals the confirmatory 0.177307.
+- Re-running `mixed4a` on the full maps with the window swapped reproduces the scored readout (max |Δz| 2.5·10⁻⁶).
+
+The per-pair table is [`generated/examples.md`](generated/examples.md).
+
+Two things the examples make visible:
+- **Failures still move.**
+  - Two of the three random failures (pairs 2457 and 3022) move the readout 0.425 of the way to the source. That is
+    just below the weakest of the six successes (0.433; the successes range from 0.433 to 0.617).
+  - Yet their decoded orientation stays near the base's: 200° and 170°, against clean-base decodes of 185° and
+    175°.
+  - So a sizeable partial move does not reliably flip the 72-way decode. The per-pair medians in the README's "Where
+    swaps succeed" breakdown (post hoc: 0.40 for failures, 0.55 for successes) show the same overlap.
+- **Large arcs reach past the window.** In both radius-80 examples (pairs 3737 and 3955), part of the curve units'
+  activity lies outside the swapped window and stays the base's. It cannot change the readout, which depends only on
+  the window (`model.crop_window`, verified in `tests/test_model.py`).
+
+These are single examples, not tests.
+
+![Overview of the example swaps](../figures/examples_overview.png)
+![A successful swap, pair 153](../figures/examples/success_153.png)
+![A failed swap, pair 2457](../figures/examples/failure_2457.png)
+
 ## Interpretation
 1. **The strong sufficiency claim fails.** Copying the 10 curve units makes the next layer's curve units decode the
    source orientation in only about 18% of pairs (10% under the whole-layer ridge readout). Under the pre-registered

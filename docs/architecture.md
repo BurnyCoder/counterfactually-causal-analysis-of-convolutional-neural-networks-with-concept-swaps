@@ -3,6 +3,7 @@
 `main.py` is the only entry point. It loads the configuration and the model once, then calls the phases in order.
 - E1, E2 and E3 each write `results/<phase>.json`; E1 also draws its figures.
 - `hero` writes the README figure and GIF.
+- `examples` writes the example-swap figures and `reports/generated/examples.md` (output-only).
 - `report` writes the generated tables, LaTeX macros and the E2/E3/summary figures from the JSONs.
 - `posthoc`, `audit`, `audit2` and `export` run only when named. They write `results/posthoc_robustness.json`,
   `results/posthoc_audit.json`, `results/posthoc_audit2.json` and `hf_export/`.
@@ -19,6 +20,7 @@ graph TD
   MAIN --> E3[phases/e3_natural.py]
   MAIN --> REP[phases/report_tables.py]
   MAIN --> HERO[phases/hero.py<br/>README figure + GIF]
+  MAIN --> EXA[phases/examples.py<br/>example-swap figures]
   MAIN -.->|only when named| PH[phases/posthoc.py<br/>rank-matched null, exact rotations]
   MAIN -.->|only when named| AU[phases/audit.py<br/>effect-ranked competitor, ridge complement,<br/>H2 per direction, nuisance sham]
   MAIN -.->|only when named| AU2[phases/audit2.py<br/>ridge-readout causal ranking,<br/>additivity by 4a branch, H5 blur on matched angles]
@@ -35,6 +37,10 @@ graph TD
   PH --> E2
   PH --> E3
   HERO --> COMMON
+  EXA --> COMMON
+  EXA --> HERO
+  EXA --> FV[featvis.py<br/>Lucent feature visualizations]
+  FV --> MODEL
   EXP --> COMMON
   E1 --> STIM[stimuli.py<br/>arcs/lines, grids, minimal pairs]
   E1 --> COMMON
@@ -50,6 +56,7 @@ graph TD
   FAM --> DATA[(data/circuits/*.json<br/>published tuning)]
   E1 --> PLOT[plots.py]
   HERO --> PLOT
+  EXA --> PLOT
   REP --> PLOT
   E1 --> R1[(results/e1_replication.json)]
   E2 --> R2[(results/e2_synthetic.json)]
@@ -94,7 +101,15 @@ graph TD
    - Mean-ablate the family over whole maps and count changes in the network's top-1 prediction.
 6. **Hero.** Re-renders the selection and confirmatory splits and draws the README example figure and GIF for the
    pre-chosen cell (θ = 0° base, radius 45, width 3, dark-on-light).
-7. **Report.** Markdown tables (`reports/generated/results.md`), LaTeX macros, and the E2/E3 and summary figures
+7. **Examples (about 3 minutes on an RTX 5070 Laptop; log `20261024_024626`).**
+   - Re-render the two splits, recompute the H1 family swap for all 4608 pairs and assert that the IIA equals
+     `results/e2_synthetic.json`.
+   - Draw 6 random successes and 3 random failures (`stats.random_rows`, seed 0), plus the hero pair.
+   - Capture their full `mixed3b` maps, swap the family's 11×11 window, re-run `mixed4a` on the full maps, and
+     assert that this equals the scored readout.
+   - Render feature visualizations of the 24 curve units with Lucent (512 steps, redirected ReLU).
+   - Draw one flow figure per pair, an overview, and the neuron grid, and write `reports/generated/examples.md`.
+8. **Report.** Markdown tables (`reports/generated/results.md`), LaTeX macros, and the E2/E3 and summary figures
    are produced from the JSON files only.
 
 ## Design choices

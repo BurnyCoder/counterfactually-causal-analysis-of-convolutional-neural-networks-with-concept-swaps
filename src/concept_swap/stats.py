@@ -40,6 +40,16 @@ def percentile_ci(x: np.ndarray, level: float = 0.95) -> tuple[float, float]:
     return float(np.quantile(x, a)), float(np.quantile(x, 1 - a))  # lower and upper replicate quantiles
 
 
+def random_rows(mask: np.ndarray, k: int, seed: int) -> np.ndarray:
+    """k distinct row indices where `mask` is True (all of them if fewer), drawn uniformly with `default_rng(seed)`
+    and sorted.
+
+    Local: the rule that picks example pairs for the figures. Global context: drawing examples at random, not by
+    outcome size, keeps the illustrations representative (no cherry-picking)."""
+    rows = np.flatnonzero(mask)
+    return np.sort(np.random.default_rng(seed).choice(rows, min(k, len(rows)), replace=False))
+
+
 def perm_p(obs: float, null: np.ndarray) -> float:
     """One-sided Monte-Carlo p-value (1 + #{null >= obs}) / (1 + M) (Phipson & Smyth 2010, https://doi.org/10.2202/1544-6115.1585)."""
     return float((1 + np.sum(np.asarray(null) >= obs)) / (1 + len(null)))

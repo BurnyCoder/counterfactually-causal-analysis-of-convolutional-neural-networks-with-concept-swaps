@@ -98,6 +98,21 @@ class Readout:
         return self.predict_z(self.z(readout[:, self.out_idx]), cell)
 
 
+def swap_readouts(model, sp: Split, rd: Readout, base: np.ndarray, src: np.ndarray, channels) -> dict:
+    """z-scored readouts and decodes of the clean base, the clean source and the base with `channels` swapped in.
+
+    Local: one `patched_readouts` call over the given pairs, decoded with the base's nuisance cell (pairs share it).
+    Global context: the per-pair view behind the hero and example figures; the statistics use
+    `interchange_experiment`, which runs the same patch for thousands of channel sets.
+    """
+    base, src, R = np.asarray(base), np.asarray(src), sp.col.readout.numpy()  # R: clean readouts, all channels
+    Rp = I.patched_readouts(model, "mixed4a", sp.col.windows, base, src, [channels], rd.out_idx, lambda r: r)[0]
+    cell = sp.grid.cell.values[base]  # templates of the base's cell
+    z_b, z_s, z_p = rd.z(R[base][:, rd.out_idx]), rd.z(R[src][:, rd.out_idx]), rd.z(Rp)  # selection statistics
+    return dict(z_b=z_b, z_s=z_s, z_p=z_p, cell=cell, dec_b=rd.predict_z(z_b, cell),
+                dec_s=rd.predict_z(z_s, sp.grid.cell.values[src]), dec_p=rd.predict_z(z_p, cell))
+
+
 def interchange_experiment(cfg: Config, model, layer: str, sel: Split, test: Split, pairs: pd.DataFrame,
                            sel_pairs: pd.DataFrame, family: list[int], out_idx: np.ndarray, rng: np.random.Generator,
                            n_sets: int, kind: str = "template", labels_sel: np.ndarray | None = None,

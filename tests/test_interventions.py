@@ -20,6 +20,23 @@ def test_swap_invariants(model, device, images):
     assert not np.allclose(out[2], out[0]) and not np.allclose(out[2], out[1])
 
 
+def test_swap_readouts_bracket_base_and_source(model, device, images):
+    """`swap_readouts` (used by the hero and example figures): swapping no channel keeps the base readout and
+    decode; swapping all 480 channels gives the source's."""
+    import pandas as pd
+
+    from concept_swap.phases.common import Readout, Split, swap_readouts
+
+    X = torch.cat([images, images.flip(-1)]).cpu()  # 4 images, one nuisance cell, labels 0/90/180/270
+    sp = Split(pd.DataFrame(dict(theta=[0.0, 90.0, 180.0, 270.0], cell=0)), I.collect(model, X, "mixed4a", device, batch=4))
+    rd = Readout.fit(sp, np.arange(14), sp.grid.theta.values)
+    base, src = np.array([0, 1]), np.array([2, 3])
+    none, full = (swap_readouts(model, sp, rd, base, src, ch) for ch in (np.array([], int), np.arange(480)))
+    np.testing.assert_allclose(none["z_p"], none["z_b"], atol=1e-3)
+    np.testing.assert_allclose(full["z_p"], full["z_s"], atol=1e-3)
+    np.testing.assert_array_equal(none["dec_p"], none["dec_b"]), np.testing.assert_array_equal(full["dec_p"], full["dec_s"])
+
+
 def test_mean_ablation_and_self_permutation(model, device, images):
     """Mean-ablating with a window equal to the base itself is a no-op; swapping a channel with itself is a no-op."""
     c = I.collect(model, images.cpu(), "mixed4a", device, batch=2)

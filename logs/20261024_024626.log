@@ -1,0 +1,20 @@
+2026-10-24 02:46:26,083 | INFO    | concept_swap.main | log file: logs/20261024_024626.log
+2026-10-24 02:46:26,083 | INFO    | concept_swap.main | config: {"device": "cuda", "data_dir": "data", "results_dir": "results", "figures_dir": "figures", "log_dir": "logs", "lrn_mode": "tf", "n_theta": 72, "radii": [30, 45, 60, 80], "widths": [3, 5], "arc_span_deg": 120.0, "jitter_px": 2, "pilot_seed": 0, "selection_seed": 1, "confirm_seed": 2, "stability_seeds": [3, 4], "sources_per_base": 4, "min_dtheta": 30, "tol_deg": 10.0, "n_null_sets": 2000, "n_boot": 2000, "batch_size": 64, "imagenette_url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz", "rotations": [-90, -45, 45, 90, 180], "example_counts": [6, 3], "example_seed": 0, "featvis_steps": 512, "quick": false}
+2026-10-24 02:46:45,217 | INFO    | concept_swap.phases.examples | examples: H1 family IIA 0.177307 on 4574 eligible pairs (results/e2_synthetic.json: 0.177307)
+2026-10-24 02:46:45,217 | INFO    | concept_swap.phases.examples | examples: random rows (seed 0) [('success', 153), ('success', 988), ('success', 1114), ('success', 1984), ('success', 2608), ('success', 3737), ('failure', 2457), ('failure', 3022), ('failure', 3955)]
+2026-10-24 02:46:45,559 | INFO    | concept_swap.phases.examples | examples: full-map swap matches the scored readout (max |dz| 2.50e-06)
+2026-10-24 02:46:45,573 | INFO    | concept_swap.phases.examples | examples: rendering 24 feature visualizations (512 steps)
+2026-10-24 02:49:02,738 | INFO    | concept_swap.phases.examples | examples: icons cropped to the effective RF (99% gradient mass, 5x5 branch): +-37 px (3b), +-67 px (4a)
+2026-10-24 02:49:03,402 | INFO    | concept_swap.phases.examples | examples: view = 3b rows 4-22 (input px 35-186) holds 0.9524 of the drawn sigma mass; the outer 2-position border ring holds 0.0434
+2026-10-24 02:49:05,311 | INFO    | concept_swap.phases.examples | examples: success row 153 base 190 source 0 | decoded base 190 source 355 swapped 350 -> success | effect 0.433 | complement 350
+2026-10-24 02:49:07,194 | INFO    | concept_swap.phases.examples | examples: success row 988 base 155 source 40 | decoded base 150 source 40 swapped 35 -> success | effect 0.514 | complement 150
+2026-10-24 02:49:09,120 | INFO    | concept_swap.phases.examples | examples: success row 1114 base 310 source 105 | decoded base 310 source 110 swapped 100 -> success | effect 0.532 | complement 70
+2026-10-24 02:49:10,740 | INFO    | concept_swap.phases.examples | examples: success row 1984 base 320 source 80 | decoded base 315 source 85 swapped 85 -> success | effect 0.483 | complement 75
+2026-10-24 02:49:12,688 | INFO    | concept_swap.phases.examples | examples: success row 2608 base 20 source 160 | decoded base 20 source 155 swapped 150 -> success | effect 0.617 | complement 20
+2026-10-24 02:49:14,501 | INFO    | concept_swap.phases.examples | examples: success row 3737 base 350 source 85 | decoded base 355 source 85 swapped 90 -> success | effect 0.484 | complement 100
+2026-10-24 02:49:16,252 | INFO    | concept_swap.phases.examples | examples: failure row 2457 base 190 source 125 | decoded base 185 source 125 swapped 200 -> failure | effect 0.425 | complement 130
+2026-10-24 02:49:17,774 | INFO    | concept_swap.phases.examples | examples: failure row 3022 base 175 source 20 | decoded base 175 source 25 swapped 170 -> failure | effect 0.425 | complement 155
+2026-10-24 02:49:19,708 | INFO    | concept_swap.phases.examples | examples: failure row 3955 base 260 source 225 | decoded base 260 source 230 swapped 255 -> failure | effect 0.089 | complement 225
+2026-10-24 02:49:21,502 | INFO    | concept_swap.phases.examples | examples: hero row None base 0 source 90 | decoded base 0 source 90 swapped 90 -> success | effect 0.601 | complement 350
+2026-10-24 02:49:23,576 | INFO    | concept_swap.phases.examples | examples: wrote 10 flow figures, the overview, the feature-visualization grid and examples.md
+2026-10-24 02:49:23,603 | INFO    | concept_swap.main | done

@@ -39,6 +39,14 @@ def test_lrn_mode_changes_network_output(device, images):
     assert not torch.allclose(a, b, atol=1e-3)
 
 
+def test_redirected_relu_changes_no_forward_value(model, device, images):
+    """Lucent's redirected ReLU only rewrites gradients (for feature visualization), so its outputs equal the plain
+    model's."""
+    redirected = M.load_inceptionv1(device, redirected_relu=True)
+    with torch.no_grad():
+        torch.testing.assert_close(redirected(M.preprocess(images)), model(M.preprocess(images)))
+
+
 def test_run_block_matches_full_forward(model, images):
     """Our generic Inception block equals Lucent's monolithic forward for mixed3b and mixed4a (pre and post ReLU)."""
     with M.capture(model, ["mixed3a", "mixed3b", "mixed4a"]) as acts, M.capture_pre_relu(model, ["mixed3b", "mixed4a"]) as pre:
@@ -124,3 +132,10 @@ def test_readout_rf_center_is_near_image_center(model, device):
     """The input-gradient centre of mass of the 4a readout unit lies at pixel ~111 (8*13+7 by stride arithmetic)."""
     cy, cx = M.rf_center(model, "mixed4a", device)
     assert abs(cy - 111) <= 3 and abs(cx - 111) <= 3
+
+
+def test_effective_rf_grows_from_mixed3b_to_mixed4a(model, device):
+    """The square around pixel 111 holding 99% of the 5x5 branch's input-gradient mass is larger for 4a than for 3b,
+    and both fit inside the 224-px image (used to crop the feature-visualization icons)."""
+    h3, h4 = M.rf_halfwidth(model, "mixed3b", device), M.rf_halfwidth(model, "mixed4a", device)
+    assert 8 < h3 < h4 <= 112

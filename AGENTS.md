@@ -5,15 +5,16 @@ Read `docs/architecture.md` for the module graph and data flow.
 - `main.py` only wires phases together.
 - Experiment logic lives in `src/concept_swap/phases/`.
 - Reusable mechanics live in the library modules: `model`, `stimuli`, `interventions`, `readouts`, `families`,
-  `stats`, `natural`, `plots`.
+  `stats`, `natural`, `featvis`, `plots`.
 
 ## Commands
 ```bash
 uv sync                                  # install (Python 3.12, torch cu130 from the PyTorch index)
-uv run pytest -q                         # 34 tests; model tests download inception5h.pth on first use
+uv run pytest -q                         # 40 tests; model tests download inception5h.pth on first use
 uv run python main.py --quick            # smoke test of the whole pipeline (offset seeds, results/quick/)
 uv run python main.py                    # full run (writes results/, figures/, reports/generated/results.md)
 uv run python main.py --phase report     # regenerate tables/figures from existing results/*.json
+uv run python main.py --phase examples   # example-swap figures + reports/generated/examples.md (output-only)
 uv run python main.py --phase audit      # post-hoc audit checks (results/posthoc_audit.json); then --phase report
 uv run python main.py --phase audit2     # third-audit checks (results/posthoc_audit2.json); then --phase report
 ```

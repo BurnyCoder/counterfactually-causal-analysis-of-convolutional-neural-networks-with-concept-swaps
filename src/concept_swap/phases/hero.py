@@ -10,13 +10,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter  # https://matplotlib.org/stable/api/_as_gen/matplotlib.animation.PillowWriter.html
 
-from concept_swap import families as Fm, interventions as I, stimuli as S
+from concept_swap import families as Fm, stimuli as S
 from concept_swap.config import Config
 from concept_swap.log import get_logger
-from concept_swap.phases.common import Readout, make_split
-from concept_swap.plots import BLUE, GRAY, INK2, ORANGE, _save
+from concept_swap.phases.common import Readout, make_split, swap_readouts
+from concept_swap.plots import BLUE, GRAY, INK2, ORANGE, _save, bare
 
 log = get_logger(__name__)
+
+
+def hero_pair(g) -> tuple[int, int]:
+    """Row indices (base theta 0, source theta 90) of the fixed example in the cell radius 45, width 3, dark-on-light.
+
+    The rule is fixed in code, not chosen by outcome; the example phase draws the same pair."""
+    cell = g[(g.radius == 45) & (g.width == 3) & (g.polarity == 0)]  # fixed example cell (rule, not outcome, based)
+    return int(cell.index[cell.theta == 0][0]), int(cell.index[cell.theta == 90][0])
 
 
 def run(cfg: Config, model) -> None:
@@ -25,15 +33,10 @@ def run(cfg: Config, model) -> None:
     sel, test = make_split(cfg, model, "mixed4a", S.grid(cfg, cfg.selection_seed)), make_split(cfg, model, "mixed4a", S.grid(cfg, cfg.confirm_seed))
     rd = Readout.fit(sel, fam4a, sel.grid.theta.values)  # the same primary readout as H1
     g = test.grid
-    cell = g[(g.radius == 45) & (g.width == 3) & (g.polarity == 0)]  # fixed example cell (rule, not outcome, based)
-    b = int(cell.index[cell.theta == 0][0])  # base: theta = 0
-    srcs = cell.index.values  # every orientation in the cell, theta = 0 ... 355
-    Rp = I.patched_readouts(model, "mixed4a", test.col.windows, np.full(len(srcs), b), srcs, [fam3b], fam4a, lambda R: R)[0]
-    z_b = rd.z(test.col.readout.numpy()[[b]][:, fam4a])[0]  # clean base readout (z)
-    z_s = rd.z(test.col.readout.numpy()[srcs][:, fam4a])  # clean source readouts
-    z_p = rd.z(Rp)  # patched base readouts, one per source
-    dec_p = rd.predict_z(z_p, np.full(len(srcs), g.cell[b]))  # decoded orientation after the swap
-    dec_s = rd.decode(test.col.readout.numpy()[srcs], g.cell.values[srcs])  # decoded orientation of each clean source
+    b, _ = hero_pair(g)  # base: theta = 0
+    srcs = g.index.values[g.cell == g.cell[b]]  # every orientation in the base's cell, theta = 0 ... 355
+    sw = swap_readouts(model, test, rd, np.full(len(srcs), b), srcs, fam3b)  # one swap per source
+    z_b, z_s, z_p, dec_p, dec_s = sw["z_b"][0], sw["z_s"], sw["z_p"], sw["dec_p"], sw["dec_s"]  # z-vectors, decodes
     imgs = S.render(g.loc[srcs], cfg.arc_span_deg).permute(0, 2, 3, 1).numpy()  # HWC images for imshow
     x = np.arange(len(fam4a))  # bar positions, one per 4a curve unit
 
@@ -44,9 +47,9 @@ def run(cfg: Config, model) -> None:
         axes[0].imshow(imgs[0]), axes[0].set_title(f"base: θ = {g.theta[b]:.0f}°", fontsize=9)  # srcs[0] is the base itself
         axes[1].imshow(imgs[k]), axes[1].set_title(f"source: θ = {g.theta[srcs[k]]:.0f}°", fontsize=9)
         for ax in axes[:2]:
-            ax.set_xticks([]), ax.set_yticks([]), ax.grid(False)  # plain image panels
+            bare(ax)  # plain image panels
         w = 0.27  # bar width for three side-by-side groups
-        axes[2].bar(x - w, z_b, w, color=GRAY, label=f"clean base → decoded {rd.predict_z(z_b[None], np.array([g.cell[b]]))[0]:.0f}°")
+        axes[2].bar(x - w, z_b, w, color=GRAY, label=f"clean base → decoded {sw['dec_b'][0]:.0f}°")
         axes[2].bar(x, z_p[k], w, color=BLUE, label=f"base with 3b curve family from source → decoded {dec_p[k]:.0f}°")
         axes[2].bar(x + w, z_s[k], w, color=ORANGE, label=f"clean source → decoded {dec_s[k]:.0f}°")
         axes[2].set_xticks(x, [f"4a:{n}" for n in fam4a], rotation=60, fontsize=7)

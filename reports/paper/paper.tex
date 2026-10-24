@@ -201,6 +201,7 @@ Counterfactual concept swaps turn the Circuits curve-detector explanation into a
 \bibitem[Luo et~al.(2016)]{luo2016erf} W.~Luo, Y.~Li, R.~Urtasun, R.~Zemel. Understanding the effective receptive field in deep convolutional neural networks. NeurIPS, 2016. \url{https://arxiv.org/abs/1701.04128}
 \bibitem[Morcos et~al.(2018)]{morcos2018single} A.~S.~Morcos, D.~G.~T.~Barrett, N.~C.~Rabinowitz, M.~Botvinick. On the importance of single directions for generalization. ICLR, 2018. \url{https://arxiv.org/abs/1803.06959}
 \bibitem[Oikarinen et~al.(2025)]{oikarinen2025evaluating} T.~Oikarinen, G.~Yan, T.-W.~Weng. Evaluating neuron explanations: A unified framework with sanity checks. ICML, 2025. \url{https://arxiv.org/abs/2506.05774}
+\bibitem[Olah et~al.(2017)]{olah2017feature} C.~Olah, A.~Mordvintsev, L.~Schubert. Feature visualization. \emph{Distill}, 2017. \url{https://distill.pub/2017/feature-visualization/}
 \bibitem[Olah et~al.(2020a)]{olah2020zoom} C.~Olah, N.~Cammarata, L.~Schubert, G.~Goh, M.~Petrov, S.~Carter. Zoom in: An introduction to circuits. \emph{Distill}, 2020. \url{https://distill.pub/2020/circuits/zoom-in/}
 \bibitem[Olah et~al.(2020b)]{olah2020early} C.~Olah, N.~Cammarata, L.~Schubert, G.~Goh, M.~Petrov, S.~Carter. An overview of early vision in InceptionV1. \emph{Distill}, 2020. \url{https://distill.pub/2020/circuits/early-vision/}
 \bibitem[Olah et~al.(2020c)]{olah2020equivariance} C.~Olah, N.~Cammarata, C.~Voss, L.~Schubert, G.~Goh. Naturally occurring equivariance in neural networks. \emph{Distill}, 2020. \url{https://distill.pub/2020/circuits/equivariance/}
@@ -215,7 +216,7 @@ Counterfactual concept swaps turn the Circuits curve-detector explanation into a
 \section{Reproducibility and statistics details}
 Code, tests and the pre-registration are at \url{https://github.com/BurnyCoder/counterfactually-causal-analysis-of-convolutional-neural-networks-with-concept-swaps}. Per-pair data are in the Hugging Face dataset \url{https://huggingface.co/datasets/BurnyCoder/inceptionv1-curve-concept-swaps}. All numbers in this paper are \LaTeX\ macros generated from the result files (\texttt{reports/generated/numbers.tex}).
 
-Runtime is 57 minutes on an RTX~5070 Laptop GPU (8\,GB), plus 22 minutes for the post-hoc checks, 5 minutes for the second audit's checks and 4 minutes for the third audit's. Determinism: TF32 is disabled, and stimuli, pairs and null sets are seeded from one random stream in a fixed phase order, so only the full pipeline run reproduces the null sets exactly. The cropped-window recomputation equals the full network in fp64 (unit test tolerance $10^{-9}$; measured difference 0).
+Runtime is 57 minutes on an RTX~5070 Laptop GPU (8\,GB), plus 22 minutes for the post-hoc checks, 5 minutes for the second audit's checks, 4 minutes for the third audit's and 3 minutes for the output-only example figures (Appendix~ef{app:examples}). Determinism: TF32 is disabled, and stimuli, pairs and null sets are seeded from one random stream in a fixed phase order, so only the full pipeline run reproduces the null sets exactly. The cropped-window recomputation equals the full network in fp64 (unit test tolerance $10^{-9}$; measured difference 0).
 
 Null sizes (per $\Delta$-matched and per branch-matched null): 2000 for H1 and H4; 1000 for H2, the composited test and H5; 500 for the ridge readout, the seeds and the LRN check. The descriptive random null has a quarter as many sets. The smallest attainable permutation $p$ is $1/(M+1)$.
 
@@ -230,6 +231,30 @@ IIA by $|\Delta\theta|$ bin (30--60, 60--90, 90--120, 120--150, 150--180$^\circ$
 \caption{Left: dose-response over random $K$-subsets of the curve family. Right: IIA when patching the top-$K$ \texttt{mixed3b} channels by activation change; the $x$ axis shows $\log_2K$.}
 \end{figure}
 
+\section{Example swaps}\label{app:examples}
+To show what the statistics count, the output-only \texttt{examples} phase draws six eligible H1 successes and three eligible failures uniformly at random (seed 0, not by outcome size). It shows each pair as it passes through the network (Figures~\ref{fig:featvis}--\ref{fig:example-failure}). The phase recomputes the H1 per-pair outcomes and asserts that their IIA equals the confirmatory value. It also checks that swapping the family's $11\times11$ window in the full \texttt{mixed3b} maps and re-running \texttt{mixed4a} reproduces the scored readout up to float32 rounding. Following \citet{cammarata2020curve}, each unit is shown by a feature visualization~\cite{olah2017feature} of the single neuron at the readout position, rendered with Lucent (\url{https://github.com/greentfrapp/lucent}). These images only illustrate the units; no analysis uses them, and feature visualizations can mislead~\cite{geirhos2023trust}. In the failures shown, the swapped readout moves part of the way toward the source, but the decoder's peak stays near the base orientation. For the radius-80 arcs, curve-unit activity outside the swapped window stays the base's; it cannot affect the readout, which depends only on the window. These are single examples, not tests; the per-pair values are in \texttt{reports/generated/examples.md}.
+
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{neurons_featvis.png}
+\caption{Feature visualizations of the 10 \texttt{mixed3b} curve units (swapped) and the 14 \texttt{mixed4a} curve units (read), labelled with their E1 preferred orientation and cropped to the square holding 99\% of the readout unit's input-gradient mass.}\label{fig:featvis}
+\end{figure}
+
+\begin{figure}[p]\centering
+\includegraphics[width=0.92\linewidth]{examples_overview.png}
+\caption{Six random H1 successes and three random failures. Per row: base and source inputs (central 152\,px), the 14 \texttt{mixed4a} readouts ($z$) for clean base, clean source and swapped base, and the decoder's Pearson correlation with the 72 templates of the pair's cell. Dots mark decoded orientations; the band is the $\pm10^\circ$ success window around the source's decode.}\label{fig:examples-overview}
+\end{figure}
+
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{examples/success_153.png}
+\caption{A random success (pair 153) flowing through the network. Rows: clean base, clean source, swapped base. Columns: input image, the 10 \texttt{mixed3b} curve-unit maps ($\sigma$ above the selection-split mean) with the swapped $11\times11$ window boxed, the 14 \texttt{mixed4a} readouts, and the decoder output. In the swapped row the boxed maps are the source's.}\label{fig:example-success}
+\end{figure}
+
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{examples/failure_2457.png}
+\caption{A random failure (pair 2457), same layout. The readout moves toward the source, but the decoded orientation stays near the base's.}\label{fig:example-failure}
+\end{figure}
+
+\clearpage
 \section*{AI statement}
 This codebase and paper were written by Claude Code (Anthropic's coding agent, model Claude Opus 5.5). Libor Burian provided the exact research idea that Claude Code executed: counterfactual concept-swap interventions validating a Circuits neuron explanation in a CNN. Human cleanup and rewriting are in progress.
 
