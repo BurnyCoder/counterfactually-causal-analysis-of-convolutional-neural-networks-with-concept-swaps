@@ -31,6 +31,16 @@ def test_bootstrap_ci_covers_true_rate_for_independent_pairs():
     assert lo < 0.3 < hi and hi - lo < 0.06
 
 
+def test_random_rows_is_the_seeded_sorted_draw_inside_the_mask():
+    """The example-selection rule: k distinct rows where `mask` holds, drawn with default_rng(seed), sorted (the
+    same rule that picked the README's six H1 successes)."""
+    mask = np.random.default_rng(1).random(500) < 0.2
+    rows = St.random_rows(mask, 6, seed=0)
+    expected = np.sort(np.random.default_rng(0).choice(np.flatnonzero(mask), 6, replace=False))
+    np.testing.assert_array_equal(rows, expected)
+    assert mask[rows].all() and (np.diff(rows) > 0).all()
+
+
 def test_phipson_smyth_p():
     assert St.perm_p(1.0, np.zeros(99)) == 0.01 and St.perm_p(0.0, np.ones(99)) == 1.0
 
