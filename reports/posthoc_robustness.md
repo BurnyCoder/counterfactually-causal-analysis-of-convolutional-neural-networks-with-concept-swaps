@@ -14,14 +14,14 @@ Run it with `uv run python main.py --phase posthoc`.
    - A decile-matched null set draws 10 of the other 38 top-decile channels, and most of those change *less* than
      the family.
    - The new **rank-matched null** matches each curve unit to one of its 10 nearest non-family channels by Δ (1000
-     sets).
+     sets; 500 for the ridge readout).
    - We also report the **most-changing competitor**: the 10 non-family channels with the largest Δ. (The second
      round below found a stronger one, ranked by single-channel effect.)
-2. **The pre-registered H1-ridge "effect" was measured over all 508 z-scored `mixed4a` channels.** That says the
+2. **The H1-ridge "effect" of the registered code was measured over all 508 z-scored `mixed4a` channels.** That says the
    whole layer moves toward the source, not that the *decoded orientation* does. We now also measure the effect in
    the ridge decoder's (cos θ, sin θ) output space.
 3. **H5 confounded rotation with resampling blur.**
-   - The 0° base is never resampled, while ±45° rotations, and ±90° on non-square images, go through bilinear
+   - The 0° base is never rotated, while ±45° rotations, and ±90° on non-square images, go through bilinear
      interpolation.
    - We repeat H5 on square crops rotated by −90/90/180°, which PIL performs as exact transposes. This is verified
      against `np.rot90` in `tests/test_natural.py`.
@@ -31,7 +31,7 @@ Run it with `uv run python main.py --phase posthoc`.
 | Test | Family effect [95% CI] | Rank-null q95 | Decile-matched null q95 | Top-Δ non-family set: IIA / effect |
 |---|---|---|---|---|
 | H1 (3b → 4a curve units) | 0.410 [0.400, 0.419] | 0.121 | 0.098 | 0.000 / 0.125 |
-| H1-ridge, z-space (as pre-registered) | 0.248 | 0.135 | 0.106 | 0.000 / 0.155 |
+| H1-ridge, z-space (registered code) | 0.248 | 0.135 | 0.106 | 0.000 / 0.155 |
 | **H1-ridge, decoded (cos, sin) space** | **0.573** [0.564, 0.583] | 0.126 | 0.097 | — |
 | H2 curvature swap | 0.393 | 0.100 | 0.141 | 0.068 / 0.172 |
 | H4 3a → 3b | 0.324 | 0.146 | 0.169 | 0.000 / 0.116 |
@@ -74,12 +74,14 @@ Run it with `uv run python main.py --phase posthoc`.
 - **The composited test reuses the same 32 photo backgrounds in both splits.** It generalises across jitter, not
   backgrounds.
 - **The pigeonhole bootstrap treats base and source as separate factors** although images play both roles, and it
-  ignores jitter-cell clustering, so the CIs are somewhat narrow. This cannot change the verdicts:
+  ignores jitter-cell clustering, so the CIs may be somewhat too narrow, although under a crossed random-effects
+  model the pigeonhole bootstrap is itself mildly conservative ([Owen 2007](https://arxiv.org/abs/0712.1111)). This
+  cannot change the verdicts:
   - H1's falsification uses the point estimate, IIA < 0.2. The estimate is 0.177, and the seeds give 0.171–0.172.
     Its CI upper bound (0.199) is, however, close to 0.2.
   - Every secondary margin's CI lower bound is at least 0.136, far from 0.
-- **The effect's 5% denominator filter used all pairs,** not only eligible ones as pre-registered. At most 1.7% of
-  pairs are ineligible.
+- **The effect's 5% denominator filter used all pairs,** not only eligible ones as pre-registered (a deviation). At
+  most 1.7% of pairs are ineligible; for H1, the eligible-only filter changes the effect from 0.40995 to 0.40996.
 - **Reliability and privacy:**
   - Result files and logs now store repo-relative paths.
   - The Imagenette archive (SHA-256) and the InceptionV1 weights (SHA-256) are verified on use.
@@ -174,8 +176,8 @@ the same K give 0.359 / 0.442 / 0.792.
 
 ### Learnings
 - **Readout dependence.** A claim about "the rest of the network" must name its readout. The same complement swap
-  reads as "redundant" through 14 hand-picked units and as "mostly dependent on the family" through a whole-layer
-  decoder.
+  reads as "redundant" through 14 hand-picked units, while through a whole-layer decoder the family carries the larger
+  share (57%).
 - **Strength of the comparison set.** A data-driven baseline is only as strong as its selection criterion.
   Selecting by the quantity under test (causal effect) is the competitor a specificity claim has to beat.
 - **How the checks ran.** Each check was first run as a read-only diagnostic on the selection split. The
@@ -199,7 +201,8 @@ It did find one confounded post-hoc comparison and several interpretive claims t
 1. **H5 blur comparison is confounded with the angle set.**
    - The exact-rotation run uses −90/90/180°. The pre-registered H5 also includes ±45°, which have the lowest IIA (0.030).
    - On the same three angles, the original IIA is (0.077 + 0.081 + 0.140) / 3 = 0.0995, against 0.108 for the exact
-     run.
+     run. That is a 6-template decode; with the same 4 templates as the exact run, the original IIA is also 0.108
+     (check (h) below).
    - PIL's `Image.rotate` already uses an exact transpose for 180° on every image. Only ±45°, and ±90° on non-square
      images, were bilinear.
    - So "blur-free rotations give a larger effect" was not shown. Per-angle effects were not stored.
@@ -218,7 +221,7 @@ It did find one confounded post-hoc comparison and several interpretive claims t
    - The asymmetry therefore most likely reflects where the correlation decoder puts its line/arc boundary.
    - This is an inference from the average effects; no code measures the boundary.
 5. **The family-rotation circular mean is a mixture, not a uniform partial shift.**
-   - 34–74% of pairs are unchanged, and 10–50% land within 30° of the predicted shift.
+   - 34–74% of pairs are unchanged, and 10–49% land within 30° of the predicted shift.
 6. **E1 has no pre-registered pass threshold, and its radii were chosen on the pilot.**
    - The radii were chosen to maximise agreement with the same published curves, so the r values are optimistic.
    - The conclusion is robust: on the pilot, 3b r ≥ 0.929 at every radius from 20 to 80 px.
@@ -266,5 +269,5 @@ Run log: `logs/20261023_230809.log`. Tables: [`generated/results.md`](generated/
     (squared-norm ratio). That is a property of these stimuli, not of the architecture.
   - The unit test `test_readout_additivity_is_structural_only_for_1x1_and_pool_branches` confirms the architectural
     part: with sparse random inputs, the 3×3 and 5×5 branches are not additive.
-  - The projected effects still sum to 1 within 0.001 in every group (1.001 for the 5×5 branch and its 8 readout
-    units): the interaction is almost orthogonal to the base-to-source direction.
+  - The projected effects still sum to 1 within about 0.001 in every group (largest deviation 0.0011, in the 5×5
+    branch and its 8 readout units): the interaction is almost orthogonal to the base-to-source direction.

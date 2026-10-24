@@ -6,8 +6,10 @@ as "curve detectors". Each fires for curves bent in one direction. We asked whet
 
 **How.** We showed the network two images that are identical except for the curve's direction. Then we transplanted
 only those 10 neurons' activity from the second image into the first, and checked what the next layer's curve
-neurons "see". As a control we transplanted thousands of other 10-neuron groups chosen to change just as much
-between the images. All pass/fail rules were written down and published before running the experiment.
+neurons "see". As a control we transplanted thousands of other 10-neuron groups drawn from the same activation-change
+brackets (deciles) as the 10 neurons; a stricter check added later matched each neuron to its nearest neighbours
+in activation change. The pass/fail rules of the main tests were committed to git before the experiment ran;
+later audit checks were added after it.
 
 **What we found.**
 1. **The observation replicates.** Our setup reproduces the original authors' tuning curves closely: mean
@@ -17,20 +19,21 @@ between the images. All pass/fail rules were written down and published before r
    moves the next layer on its own (a check added later) picks 9 of the 10 published neurons as the top 10 when we read
    the next layer's 14 curve neurons. It picks 8 of the 10 when we read the whole next layer.
 3. **They are not enough on their own.** The next layer actually switches to the transplanted direction in only
-   about 18% of cases, so our pre-registered "strong" hypothesis (at least 50%) is **falsified**. The rest of the
-   direction information is spread over many more neurons: picking the most useful ones first, it takes about 80 for reliable transfer. How
+   about 18% of cases, so our pre-registered "strong" hypothesis is **falsified**: support needed at least 50%, and
+   below 20% counts as falsified. The rest of the direction information is spread over many more neurons: picking
+   the most useful ones first, about 80 give reliable transfer (an upper bound; no search over groups was run). How
    well the other 470 neurons can replace the 10 depends on how we read the next layer. Read from its 14 curve
    neurons, they transfer the direction in 40% of cases. Read from the whole layer, they transfer it in only 2%,
    and the 10 curve neurons carry 57% of the shift.
 4. **They carry "curviness".** Transplanting them from a curve into a straight line makes the next layer's curve
-   neurons call it a curve 81% of the time. Control groups do so 3% of the time on average. The reverse transplant
+   neurons call it a curve 81% of the time. Control groups for that direction (a check added later) do so 3% of the time on average. The reverse transplant
    almost never makes a curve read as a line. The 10 neurons move the next layer about equally far in both
    directions on average, so the lopsidedness most likely comes from where the readout draws its line/curve boundary.
    That is an inference; nothing measures the boundary directly.
 5. **This holds on real photos, more weakly.** On rotated photos the effect is 0.29, while 95% of control groups stay at
    or below 0.075.
    Replacing the 10 neurons' activity with its average changes the network's final answer on 17% of photos, versus
-   9% for control groups.
+   9% for control groups (an exploratory analysis, planned without a pass/fail rule).
 
 **Bottom line.** "Curve detector" is a good *observational* description, and the units are *causally specific*, but
 they are one part of a shared orientation code rather than its single carrier. Details:
@@ -47,12 +50,12 @@ they are one part of a shared orientation code rather than its single carrier. D
 | Explanation | A claim of what a unit does. | "These 10 units detect curves of one orientation each." |
 | Observational test | Check that the unit fires on what the explanation says. | E1: tuning curves vs the authors' published curves, and AUROC. |
 | Interchange intervention / concept swap / activation patching | Run image A, but copy some units' activations from image B, then see what the rest of the network does. | Copy the family's channels in the RF window from the *source* image into the *base* image, then recompute the next block. |
-| Base / source | The image being edited / the image the activations come from. | Same stimulus except orientation (synthetic), or the same photo rotated (H5). |
+| Base / source | The image being edited / the image the activations come from. | Same stimulus except orientation (synthetic), line vs arc (H2), or the same photo rotated (H5). |
 | Readout τ | How we read "which orientation the network now represents" downstream. | A nearest-template decoder over the 14 published `mixed4a` curve units (primary), or a ridge decoder over all 508 `mixed4a` channels (secondary). |
 | IIA (interchange intervention accuracy) | How often the swap makes the network act as if it saw the source. | The fraction of eligible pairs where decode(patched base) is within 10° of decode(clean source) ([Huang et al. 2023](https://arxiv.org/abs/2309.10312)). |
-| Normalized effect | How far the readout moved toward the source, from 0 (no change) to 1 (fully the source). | Σ⟨z_p−z_b, z_s−z_b⟩ / Σ‖z_s−z_b‖² over pairs. |
-| Null neuron set | A control set of non-explanation units of the same size. | Δ-matched: its activation changes as much as the family's. Branch-matched: same 5×5 branch. Random. |
-| q95 of the null | The value that 95% of control sets do not reach. | Used as the bar the explanation must clear. |
+| Normalized effect | How far the readout moved toward the source, from 0 (no change) to 1 (fully the source). | Σ⟨z_p−z_b, z_s−z_b⟩ / Σ‖z_s−z_b‖² over pairs, excluding the 5% with the smallest ‖z_s−z_b‖². Values outside 0–1 are possible (null sets can be negative). |
+| Null neuron set | A control set of non-explanation units of the same size. | Δ-matched: drawn from the same activation-change deciles as the family. Branch-matched: same 5×5 branch. Random. |
+| q95 of the null | The value that 95% of control sets do not exceed. | Used as the bar the explanation must clear. |
 | Pigeonhole bootstrap | A way to get error bars when pairs share images. | Resample base images and source images separately ([Owen 2007](https://doi.org/10.1214/07-AOAS122)). |
 | Holm correction | Adjusts p-values when testing several hypotheses. | Applied across the 5 secondary hypotheses. |
 | Pre-registration | Writing down hypotheses and pass/fail rules before seeing the data. | `reports/preregistration.md`, committed before the confirmatory runs. |

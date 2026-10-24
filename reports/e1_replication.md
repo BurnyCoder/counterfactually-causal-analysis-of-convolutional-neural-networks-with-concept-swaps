@@ -18,14 +18,14 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 6. **Selectivity of each 3b unit (AUROC):**
    - Positives: arcs within ±45° of the unit's preferred θ.
    - Negatives: (a) arcs at other orientations; (b) straight lines with the same lengths, widths and polarities.
-   - The gate metric, Pearson r, passes the neuron-explanation sanity checks of
-     [Oikarinen et al. 2025](https://arxiv.org/abs/2506.05774). AUROC fails their extra-labels test, so it is
+   - The gate metric is Pearson r. Used to score neuron explanations, Pearson correlation passes the sanity checks
+     of [Oikarinen et al. 2025](https://arxiv.org/abs/2506.05774); here it compares tuning curves. AUROC fails their extra-labels test, so it is
      reported only as a descriptive selectivity summary, not as evidence for the gate.
 
 ## Results
 - **Convention fitted on 3a:** reflection −1, shift 180° (r = 0.937 on 3a). The same convention also maximised the
   fit separately on every layer in the pilot, so it is not tuned to 3b.
-- **mixed3b: mean r = 0.969.** Every unit is in 0.96–0.98. Permutation null q95 = 0.254; p = 1·10⁻⁴, the minimum
+- **mixed3b: mean r = 0.969.** Every unit is in 0.956–0.980. Permutation null q95 = 0.254; p = 1·10⁻⁴, the minimum
   possible with 10⁴ permutations.
   - Preferred orientations, in our convention, tile the circle in the published order: 379 → 290°, 406 → 265°,
     385 → 240°, 343 → 180°, 342 → 150°, 388 → 110°, 324 → 95°, 340 → 70°, 330 → 40°, 349 → 5°.
@@ -43,7 +43,7 @@ interventional result: if our setup did not reproduce the tuning, a failed swap 
 ![E1 replication summary](../figures/e1_replication_summary.png)
 
 - **LRN sensitivity:** with Lucent's default LRN constants instead of the TF-exact ones, the same correlations are
-  0.937 (3a), 0.969 (3b) and 0.848 (4a). The LRN fix does not affect tuning-curve shape.
+  0.937 (3a), 0.969 (3b) and 0.848 (4a). The LRN fix changes mean r by at most 0.001.
   - This check was in the approved plan but is not in the pre-registration.
   - It was run after the confirmatory run, by rerunning E1 deterministically (`logs/20261023_191858.log`). The other
     E1 numbers are identical to the confirmatory log.
