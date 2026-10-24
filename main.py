@@ -9,6 +9,8 @@ numbers in reports/ and the paper also need `--phase posthoc`, `--phase audit`, 
     E2 synthetic     -> results/e2_synthetic.json    (H1 primary, H1 ridge, H2, H4, stability, LRN sensitivity)
     E3 natural       -> results/e3_natural.json      (composited arcs, H5 rotation counterfactual, relevance)
     hero             -> figures/hero_concept_swap.png, figures/concept_swap_sweep.gif (README illustration)
+    examples         -> figures/{neurons_featvis,examples_overview,examples/*}.png, reports/generated/examples.md
+                        (random H1 successes and failures flowing through the network; output-only)
     report           -> reports/generated/{results.md,numbers.tex} + figures/summary_*.png (generated from the JSONs)
     posthoc          -> results/posthoc_robustness.json (post-hoc, NOT pre-registered: stricter null, ridge output space, exact rotations)
     audit            -> results/posthoc_audit.json (post-hoc, NOT pre-registered: checks added by the independent audit)
@@ -25,9 +27,10 @@ import torch
 from concept_swap.config import load_config
 from concept_swap.log import get_logger, setup_logging
 from concept_swap.model import load_inceptionv1
-from concept_swap.phases import audit, audit2, e1_replication, e2_synthetic, e3_natural, export_hf, hero, posthoc, report_tables
+from concept_swap.phases import (audit, audit2, e1_replication, e2_synthetic, e3_natural, examples, export_hf, hero, posthoc,
+                                 report_tables)
 
-PHASES = ("e1", "e2", "e3", "hero", "report")  # run in this order by `--phase all` (the default)
+PHASES = ("e1", "e2", "e3", "hero", "examples", "report")  # run in this order by `--phase all` (the default)
 
 
 def main() -> None:
@@ -49,7 +52,7 @@ def main() -> None:
     rng = np.random.default_rng(cfg.confirm_seed)  # single RNG stream for null sets and bootstraps
     torch.manual_seed(cfg.confirm_seed)  # torch RNG (used by rf_center's random images)
     run = lambda name: args.phase in (name, "all")  # should this phase run?
-    needs_model = any(run(p) for p in PHASES[:4]) or args.phase in ("posthoc", "audit", "audit2", "export")  # report reads JSON only
+    needs_model = any(run(p) for p in PHASES[:5]) or args.phase in ("posthoc", "audit", "audit2", "export")  # report reads JSON only
     model = load_inceptionv1(cfg.device, cfg.lrn_mode) if needs_model else None
     load = lambda n: json.loads((cfg.results_dir / f"{n}.json").read_text())["results"]  # earlier phase's results
     e1 = e1_replication.run(cfg, model, rng) if run("e1") else None
@@ -59,6 +62,8 @@ def main() -> None:
         e3_natural.run(cfg, model, rng)
     if run("hero"):
         hero.run(cfg, model)
+    if run("examples"):
+        examples.run(cfg, model)
     if run("report"):
         report_tables.run(cfg)
     if args.phase == "posthoc":  # explicit only: post-hoc robustness analyses
